@@ -1714,7 +1714,7 @@ let playerSearchText='';
 let playerRosterView='active';
 const LEVEL_POINTS={Einsteiger:1,Fortgeschritten:2,Stark:3,Profi:4};
 const POSITION_COLORS=['#dbeafe','#dcfce7','#fef3c7','#fee2e2','#ede9fe','#cffafe','#fce7f3','#e2e8f0'];
-let supabase=null, currentUser=null, team=null, season=null, role='trainer';
+let supabase=null, currentUser=null, team=null, season=null, role='trainer', currentTeamRoles=[];
 let state={players:[],inactivePlayers:[],trainings:[],trainingSeries:[],positions:[],positionRows:[],matchdays:[],trainers:[]};
 let matchdaySelection=new Set();
 let currentMatchdayId=null;
@@ -1754,7 +1754,7 @@ window.saveConfigAndLogin=async()=>{setLoginMsg('Die Verbindung ist bereits eing
 window.login=async()=>{try{const c=getClient();const email=$('loginEmail').value.trim();const password=$('loginPassword').value;if(!email||!password){setLoginMsg('Bitte E-Mail und Passwort eingeben.',true);return}setLoginMsg('Anmeldung …');const {data,error}=await c.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;await loadApp();}catch(e){console.error(e);setLoginMsg('Anmeldung fehlgeschlagen: '+(e.message||e),true);}};
 window.changeEmail=async()=>{try{const email=$('accountEmail').value.trim();if(!email||email===currentUser.email){showStatus('Bitte eine neue E-Mail-Adresse eingeben.','error');return}const {data,error}=await getClient().auth.updateUser({email});if(error)throw error;showStatus('E-Mail-Änderung gestartet. Bitte die Bestätigungs-E-Mail(s) beachten.','ok');}catch(e){showStatus('E-Mail konnte nicht geändert werden: '+(e.message||e),'error');}};
 window.changePassword=async()=>{try{const password=$('newPassword').value;if(password.length<6){showStatus('Das neue Passwort muss mindestens 6 Zeichen lang sein.','error');return}const {error}=await getClient().auth.updateUser({password});if(error)throw error;$('newPassword').value='';showStatus('Passwort wurde geändert.','ok');}catch(e){showStatus('Passwort konnte nicht geändert werden: '+(e.message||e),'error');}};
-window.deleteMyAccount=async()=>{if(!confirm('Möchtest du dein Trainerkonto wirklich dauerhaft löschen? Diese Aktion kann nicht rückgängig gemacht werden.'))return;if(!confirm('Wirklich löschen? Deine persönliche Anmeldung wird entfernt. Bei einem Admin kann dadurch die Mannschaft ohne Admin zurückbleiben.'))return;try{const {error}=await getClient().rpc('delete_my_account');if(error)throw error;await getClient().auth.signOut();currentUser=null;team=null;season=null;$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');setLoginMsg('Dein Konto wurde gelöscht.');}catch(e){showStatus('Konto konnte nicht gelöscht werden: '+(e.message||e),'error');}};
+window.deleteMyAccount=async()=>{showStatus('Die Kontolöschung ist vorübergehend deaktiviert, weil Rollen, Vereinszugehörigkeiten und historische Daten noch nicht vollständig sicher behandelt werden. Bitte wende dich an den Systemadministrator.','error');return;};
 window.addTrainerToTeam=async()=>{
   if(!adminGuard()) return;
   try {
@@ -1794,25 +1794,17 @@ window.logout=async()=>{if(supabase)await supabase.auth.signOut();currentUser=nu
 
 async function loadApp(){
   const c=getClient();
-  const {data:members,error:me}=await c.from('team_members').select('team_id,user_id,role').eq('user_id',currentUser.id);
+  const {data:members,error:me}=await c.from('team_member_roles').select('team_id,user_id,role').eq('user_id',currentUser.id);
   if(me)throw me;if(!members?.length)throw new Error('Dieser Trainer ist noch keiner Mannschaft zugeordnet.');
-  team=members[0].team_id;role=members[0].role||'trainer';
+  const availableTeams=[...new Set(members.map(m=>m.team_id))];if(availableTeams.length>1)throw new Error('Dein Konto gehört zu mehreren Mannschaften. Die sichere Mannschaftsauswahl ist noch nicht verfügbar. Bitte nutze die App erst wieder, wenn eine Mannschaft explizit ausgewählt werden kann.');team=availableTeams[0];currentTeamRoles=[...new Set(members.filter(m=>m.team_id===team).map(m=>m.role))];role=currentTeamRoles.includes('admin')?'admin':'trainer';const currentRoleLabel=currentTeamRoles.map(r=>r==='admin'?'Admin':'Trainer').join(' + ')||'Trainer';
   state.trainers=[];
-  let teamMembers=[];
-  {
-    const r=await c.from('team_members').select('user_id,role,admin_label').eq('team_id',team);
-    if(r.error){
-      const fallback=await c.from('team_members').select('user_id,role').eq('team_id',team);
-      if(fallback.error)throw fallback.error;
-      teamMembers=(fallback.data||[]).map(x=>({...x,admin_label:''}));
-    }else teamMembers=r.data||[];
-  }
-  const {data:trainerRows,error:trainerError}=await c.rpc('get_team_trainers',{p_team_id:team});
-  if(trainerError){
-    console.warn('Trainerdaten konnten nicht vollständig geladen werden:',trainerError.message);
-    state.trainers=(teamMembers||[]).map(m=>({user_id:m.user_id,role:m.role||'trainer',admin_label:m.admin_label||'',email:m.user_id===currentUser?.id?(currentUser.email||''):''}));
-  }else{
-    state.trainers=(trainerRows||[]).map(m=>({user_id:m.user_id,role:m.role||'trainer',admin_label:m.admin_label||'',email:m.email||''}));
+  if(role==='admin'){
+    const {data:trainerRows,error:trainerError}=await c.rpc('get_team_trainers_v2',{p_team_id:team});
+    if(trainerError){
+      console.warn('Trainerdaten konnten nicht vollständig geladen werden:',trainerError.message);
+      throw new Error('Die Rollenliste konnte nicht sicher geladen werden. Bitte Seite neu laden oder Admin kontaktieren.');
+    }
+    state.trainers=(trainerRows||[]).map(m=>({user_id:m.user_id,roles:Array.isArray(m.roles)?m.roles:[m.role||'trainer'],role:(Array.isArray(m.roles)?m.roles:[m.role||'trainer']).includes('admin')?'admin':'trainer',admin_label:m.admin_label||'',email:m.email||''}));
   }
   const {data:teamRow,error:te}=await c.from('teams').select('id,name,recommended_squad_size').eq('id',team).single();if(te)throw te;recommendedSquadSize=Number(teamRow?.recommended_squad_size)||16;
   const {data:seasonRows,error:se}=await c.from('seasons').select('id,name,start_date,end_date,is_active').eq('team_id',team).eq('is_active',true).limit(1);if(se)throw se;season=seasonRows?.[0]||null;
@@ -1858,7 +1850,7 @@ async function loadApp(){
   currentMatchdayId=null;matchdaySelection=new Set();
   if($('recommendedSquadSizeInput'))$('recommendedSquadSizeInput').value=String(recommendedSquadSize);
   $('headerSub').textContent=(teamRow?.name||'Jugendmannschaft')+(season?' · Saison '+season.name:'')+' · '+(role==='admin'?'Admin':'Trainer');
-  $('accountInfo').textContent=currentUser?.email?`Angemeldet als ${currentUser.email} · Rolle: ${role}`:'';if($('accountEmail'))$('accountEmail').value=currentUser?.email||'';if($('settingsMainHeading'))$('settingsMainHeading').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsTab'))$('settingsTab').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsMainSub'))$('settingsMainSub').textContent=role==='admin'?'Mannschaft und App verwalten.':'Verwalte hier deinen Zugang zur Mannschafts-App.';if($('bottomSettingsLabel'))$('bottomSettingsLabel').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('bottomSettingsIcon'))$('bottomSettingsIcon').textContent=role==='admin'?'settings':'person';
+  $('accountInfo').textContent=currentUser?.email?`Angemeldet als ${currentUser.email} · Rolle: ${currentRoleLabel}`:'';if($('accountEmail'))$('accountEmail').value=currentUser?.email||'';if($('settingsMainHeading'))$('settingsMainHeading').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsTab'))$('settingsTab').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsMainSub'))$('settingsMainSub').textContent=role==='admin'?'Mannschaft und App verwalten.':'Verwalte hier deinen Zugang zur Mannschafts-App.';if($('bottomSettingsLabel'))$('bottomSettingsLabel').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('bottomSettingsIcon'))$('bottomSettingsIcon').textContent=role==='admin'?'settings':'person';
   document.querySelectorAll('.adminOnly').forEach(x=>x.classList.toggle('hidden',role!=='admin'));
   $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');renderAll();
 }
@@ -2559,7 +2551,7 @@ function renderTrainerList(){
   box.innerHTML=state.trainers.map(t=>{
     const isMe=t.user_id===currentUser?.id;
     const label=t.admin_label||'Noch kein Admin-Name';
-    return `<div class="card" style="margin:8px 0;padding:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b>${esc(label)}</b><br><span class="small">${esc(t.email||'E-Mail nicht verfügbar')}</span><br><span class="muted small">${isMe?'Du · ':''}${t.role==='admin'?'Admin':'Trainer'}</span></div><div class="toolbar">${isMe?'<span class="small muted">Eigenes Konto</span>':`<select onchange="changeTrainerRole('${t.user_id}',this.value)"><option value="trainer" ${t.role==='trainer'?'selected':''}>Trainer</option><option value="admin" ${t.role==='admin'?'selected':''}>Admin</option></select><button type="button" onclick="editTrainerLabel('${t.user_id}')">Name ändern</button><button class="danger" type="button" onclick="removeTrainer('${t.user_id}')">Entfernen</button>`}</div></div></div>`;
+    return `<div class="card" style="margin:8px 0;padding:10px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b>${esc(label)}</b><br><span class="small">${esc(t.email||'E-Mail nicht verfügbar')}</span><br><span class="muted small">${isMe?'Du · ':''}${(t.roles||[t.role]).map(r=>r==='admin'?'Admin':'Trainer').join(' + ')}</span></div><div class="toolbar">${isMe?'<span class="small muted">Eigenes Konto</span>':`<button type="button" onclick="changeTrainerRole('${t.user_id}','admin')">${(t.roles||[]).includes('admin')?'Admin entfernen':'Admin hinzufügen'}</button><button type="button" onclick="changeTrainerRole('${t.user_id}','trainer')">${(t.roles||[]).includes('trainer')?'Trainer entfernen':'Trainer hinzufügen'}</button><button type="button" onclick="editTrainerLabel('${t.user_id}')">Name ändern</button><button class="danger" type="button" onclick="removeTrainer('${t.user_id}')">Entfernen</button>`}</div></div></div>`;
   }).join('');
 }
 window.editTrainerLabel=async userId=>{
@@ -2580,30 +2572,39 @@ window.changeTrainerRole=async(userId,newRole)=>{
   if(!adminGuard())return;
   const target=state.trainers.find(x=>x.user_id===userId);
   if(!target)return;
-  if(userId===currentUser?.id){showStatus('Die eigene Rolle kann hier nicht geändert werden.','error');renderTrainerList();return;}
   if(newRole!=='admin'&&newRole!=='trainer')return;
-  if(target.role===newRole)return;
-  if(target.role==='admin'&&newRole==='trainer'&&state.trainers.filter(x=>x.role==='admin').length<=1){showStatus('Mindestens ein Admin muss erhalten bleiben.','error');renderTrainerList();return;}
+  const roles=target.roles||[target.role||'trainer'];
+  const hasRole=roles.includes(newRole);
+  if(hasRole&&newRole==='admin'&&state.trainers.filter(x=>(x.roles||[x.role]).includes('admin')).length<=1){
+    showStatus('Mindestens ein Admin muss erhalten bleiben.','error');renderTrainerList();return;
+  }
   try{
-    await dbUpdate('team_members',{team_id:team,user_id:userId},{role:newRole});
-    target.role=newRole;
+    const rpc=hasRole?'admin_remove_team_role':'admin_add_team_role';
+    const {error}=await getClient().rpc(rpc,{p_team_id:team,p_user_id:userId,p_role:newRole});
+    if(error)throw error;
+    await loadApp();
     renderTrainerList();
-    showStatus('Rolle geändert.','ok');
+    showStatus(hasRole?'Rolle entfernt.':'Rolle hinzugefügt.','ok');
   }catch(e){renderTrainerList();showStatus('Rolle konnte nicht geändert werden: '+(e.message||e),'error');}
 };
 window.removeTrainer=async userId=>{
   if(!adminGuard())return;
   const target=state.trainers.find(x=>x.user_id===userId);
   if(!target||userId===currentUser?.id)return;
-  if(target.role==='admin'&&state.trainers.filter(x=>x.role==='admin').length<=1){showStatus('Der letzte Admin kann nicht entfernt werden.','error');return;}
-  const label=target.email||'diesen Trainer';
-  if(!confirm(`${label} wirklich aus der Mannschaft entfernen? Das Trainerkonto selbst wird nicht gelöscht.`))return;
+  const roles=target.roles||[target.role||'trainer'];
+  const adminCount=state.trainers.filter(x=>(x.roles||[x.role]).includes('admin')).length;
+  if(roles.includes('admin')&&adminCount<=1){showStatus('Der letzte Admin kann nicht entfernt werden.','error');return;}
+  const label=target.email||'diese Person';
+  if(!confirm(`${label} wirklich vollständig aus der Mannschaft entfernen? Das Benutzerkonto selbst wird nicht gelöscht.`))return;
   try{
-    await dbDelete('team_members',{team_id:team,user_id:userId});
-    state.trainers=state.trainers.filter(x=>x.user_id!==userId);
+    for(const r of ['trainer','admin']) if(roles.includes(r)){
+      const {error}=await getClient().rpc('admin_remove_team_role',{p_team_id:team,p_user_id:userId,p_role:r});
+      if(error)throw error;
+    }
+    await loadApp();
     renderTrainerList();
-    showStatus('Trainer wurde aus der Mannschaft entfernt.','ok');
-  }catch(e){showStatus('Trainer konnte nicht entfernt werden: '+(e.message||e),'error');}
+    showStatus('Person wurde aus der Mannschaft entfernt.','ok');
+  }catch(e){renderTrainerList();showStatus('Person konnte nicht entfernt werden: '+(e.message||e),'error');}
 };
 
 function renderPositionSettings(){
