@@ -261,6 +261,8 @@ drop policy if exists "Team members can delete player positions" on public.playe
 -- Keep admin_set_trainer_label because the existing UI still uses it.
 revoke all on function public.add_team_member_by_email(text,text,uuid) from public, anon, authenticated;
 revoke all on function public.get_team_trainers(uuid) from public, anon, authenticated;
+-- Until account deletion is redesigned for anonymization and new role tables, disable it server-side too.
+revoke all on function public.delete_my_account() from public, anon, authenticated;
 
 -- RLS is enabled on these role tables already, but there are currently no policies.
 -- Deny direct client writes; privileged, explicitly checked RPCs perform mutations.
