@@ -202,7 +202,7 @@ begin
   end if;
   return null;
 end;
-$;
+$$;
 
 create constraint trigger prevent_last_team_admin_removal
 after delete or update on public.team_member_roles
@@ -242,7 +242,7 @@ begin
     return old;
   end if;
 end;
-$;
+$$;
 drop trigger if exists audit_team_role_insert on public.team_member_roles;
 create trigger audit_team_role_insert after insert on public.team_member_roles
 for each row execute function public.log_team_role_change();
