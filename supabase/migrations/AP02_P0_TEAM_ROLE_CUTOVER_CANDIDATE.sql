@@ -3,6 +3,24 @@
 -- Preconditions: role-set parity preflight passes; app/edge updates are ready.
 begin;
 
+-- Hard stop if the legacy and additive role sets differ. Do not auto-reconcile:
+-- role loss or role invention must be reviewed before this cutover.
+do $preflight$
+begin
+  if exists (
+    (select team_id,user_id,role from public.team_members)
+    except
+    (select team_id,user_id,role from public.team_member_roles)
+  ) or exists (
+    (select team_id,user_id,role from public.team_member_roles)
+    except
+    (select team_id,user_id,role from public.team_members)
+  ) then
+    raise exception 'AP02 preflight failed: team_members and team_member_roles role sets differ. No changes applied.';
+  end if;
+end;
+$preflight$;
+
 -- Fixed search_path and SECURITY DEFINER are intentional: these helpers must read
 -- role tables protected by RLS. EXECUTE is limited to authenticated callers.
 create or replace function public.is_team_member(p_team_id uuid)
