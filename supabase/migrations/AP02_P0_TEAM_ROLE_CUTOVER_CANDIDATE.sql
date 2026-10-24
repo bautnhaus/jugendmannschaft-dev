@@ -179,6 +179,80 @@ begin
 end;
 $$;
 
+-- Move last-admin protection to the authoritative additive-role table.
+drop trigger if exists prevent_last_team_admin_removal on public.team_members;
+create or replace function public.prevent_last_team_admin_removal()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $
+declare v_team_exists boolean; v_admin_exists boolean;
+begin
+  if old.role is distinct from 'admin' then return null; end if;
+  if tg_op = 'UPDATE' and new.role = 'admin' and new.team_id = old.team_id then return null; end if;
+  perform 1 from public.teams where id = old.team_id for update;
+  v_team_exists := found;
+  if not v_team_exists then return null; end if;
+  select exists (
+    select 1 from public.team_member_roles
+    where team_id = old.team_id and role = 'admin'
+  ) into v_admin_exists;
+  if not v_admin_exists then
+    raise exception 'Die letzte Admin-Rolle einer Mannschaft kann nicht entfernt werden.'
+      using errcode = '23514';
+  end if;
+  return null;
+end;
+$;
+
+create constraint trigger prevent_last_team_admin_removal
+after delete or update on public.team_member_roles
+deferrable initially deferred
+for each row execute function public.prevent_last_team_admin_removal();
+
+-- Append-only audit log for team-role changes.
+create table if not exists public.team_role_change_log (
+  id bigint generated always as identity primary key,
+  changed_at timestamptz not null default now(),
+  actor_user_id uuid,
+  affected_user_id uuid not null,
+  team_id uuid not null references public.teams(id) on delete cascade,
+  action text not null check (action in ('role_added','role_removed')),
+  role text not null check (role in ('admin','trainer'))
+);
+alter table public.team_role_change_log enable row level security;
+drop policy if exists team_role_change_log_read_admin on public.team_role_change_log;
+create policy team_role_change_log_read_admin
+on public.team_role_change_log for select to authenticated
+using (public.is_team_admin(team_id));
+
+create or replace function public.log_team_role_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $
+begin
+  if tg_op = 'INSERT' then
+    insert into public.team_role_change_log(actor_user_id,affected_user_id,team_id,action,role)
+    values (auth.uid(),new.user_id,new.team_id,'role_added',new.role);
+    return new;
+  else
+    insert into public.team_role_change_log(actor_user_id,affected_user_id,team_id,action,role)
+    values (auth.uid(),old.user_id,old.team_id,'role_removed',old.role);
+    return old;
+  end if;
+end;
+$;
+drop trigger if exists audit_team_role_insert on public.team_member_roles;
+create trigger audit_team_role_insert after insert on public.team_member_roles
+for each row execute function public.log_team_role_change();
+drop trigger if exists audit_team_role_delete on public.team_member_roles;
+create trigger audit_team_role_delete after delete on public.team_member_roles
+for each row execute function public.log_team_role_change();
+revoke insert, update, delete on public.team_role_change_log from authenticated;
+
 -- RLS is enabled on these role tables already, but there are currently no policies.
 -- Deny direct client writes; privileged, explicitly checked RPCs perform mutations.
 alter table public.team_member_roles enable row level security;
@@ -220,6 +294,9 @@ revoke all on function public.admin_add_team_role(uuid,uuid,text) from public, a
 revoke all on function public.admin_remove_team_role(uuid,uuid,text) from public, anon;
 grant execute on function public.admin_add_team_role(uuid,uuid,text) to authenticated;
 grant execute on function public.admin_remove_team_role(uuid,uuid,text) to authenticated;
+revoke all on function public.get_team_trainers_v2(uuid) from public, anon;
+grant execute on function public.get_team_trainers_v2(uuid) to authenticated;
+revoke all on function public.log_team_role_change() from public, anon;
 
 -- These replacements change authorization for every policy using these helpers.
 -- Do not apply until frontend and Edge Function are ready for the same cutover.
