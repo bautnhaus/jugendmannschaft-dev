@@ -76,3 +76,9 @@ Diese Nacharbeit reduziert konkrete Risiken, ersetzt aber keinen Testlauf. Der P
 ## Isolierter PostgreSQL-Lauf – erster Befund
 
 GitHub Actions hat die Fixture erfolgreich erstellt und die Rollen-Parität gesät. Der erste tatsächliche Apply-Test stoppte bei der Migration wegen fehlerhafter Abschluss-Begrenzer in zwei PL/pgSQL-Funktionen (`prevent_last_team_admin_removal` und `log_team_role_change`). Die SQL-Datei wurde korrigiert; der nächste Lauf muss die korrigierte Revision erneut anwenden und die Postflight-Prüfungen ausführen. Der fehlgeschlagene Lauf hat nur die kurzlebige Testdatenbank verwendet; DEV und PROD blieben unberührt.
+
+## Weitere Prüfung – Trainer-Login
+
+Beim Abgleich der neuen RLS-Regel mit dem Frontend fiel auf, dass `get_team_trainers_v2` nur für Admins gedacht ist, die App den RPC aber zuvor bei jedem Login aufgerufen hätte. Dadurch wäre der normale Trainer-Login fehlgeschlagen. Der Frontend-Kandidat wurde korrigiert: Nur Nutzer mit Teamrolle `admin` laden die Admin-Rollenliste; Trainer erhalten eine leere Admin-Liste und rufen die Admin-RPC nicht auf.
+
+Zusätzlich wurde die CI um Syntaxprüfungen für die Inline-JavaScript-Blöcke der HTML-App und die `invite-trainer` Edge Function erweitert. Der Lauf für diese Revision ist noch ausstehend.
