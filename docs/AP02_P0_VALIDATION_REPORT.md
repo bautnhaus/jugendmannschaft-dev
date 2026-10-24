@@ -82,3 +82,26 @@ GitHub Actions hat die Fixture erfolgreich erstellt und die Rollen-Parität ges�
 Beim Abgleich der neuen RLS-Regel mit dem Frontend fiel auf, dass `get_team_trainers_v2` nur für Admins gedacht ist, die App den RPC aber zuvor bei jedem Login aufgerufen hätte. Dadurch wäre der normale Trainer-Login fehlgeschlagen. Der Frontend-Kandidat wurde korrigiert: Nur Nutzer mit Teamrolle `admin` laden die Admin-Rollenliste; Trainer erhalten eine leere Admin-Liste und rufen die Admin-RPC nicht auf.
 
 Zusätzlich wurde die CI um Syntaxprüfungen für die Inline-JavaScript-Blöcke der HTML-App und die `invite-trainer` Edge Function erweitert. Der Lauf für diese Revision ist noch ausstehend.
+
+## Status nach sequenzieller Prüfung – 24.10.2026
+
+### Erfolgreich in isolierter Testumgebung
+- PostgreSQL 16 hat die Migration angewendet.
+- Rollen hinzufügen/entfernen ohne Überschreiben der anderen Rolle wurde geprüft.
+- Schutz der letzten Admin-Rolle wurde geprüft.
+- Audit-Log und Sperren der Legacy-RPCs wurden geprüft.
+- Inline-JavaScript der App wurde mit `node --check` geprüft.
+- `invite-trainer/index.ts` wurde mit `deno check` geprüft.
+- CI-Lauf: https://github.com/bautnhaus/jugendmannschaft-dev/actions/runs/40106310603
+
+### Read-only im echten DEV geprüft
+- Rollenbestand alt/neu ist exakt gleich; keine Differenzen gefunden.
+- Keine verwaisten Teamrollen gefunden.
+- Die Testmannschaft hat aktuell einen Admin und zwei Trainerrollen.
+- Die alten Policies und Legacy-Funktionsrechte sind im echten DEV weiterhin aktiv, weil die Migration nicht angewendet wurde.
+- Die aktuell deployte Edge Function `invite-trainer` nutzt noch das alte Rollenmodell und ruft `admin_add_team_role` nicht auf.
+
+### Freigabesperre
+Noch kein Browser-/Integrationstest der neuen App mit echtem Admin- und Trainerkonto. Die Feature-Branch-Version ist nicht auf der bekannten DEV-Webadresse `https://bautnhaus.github.io/jugendmannschaft-dev/` veröffentlicht. Die aktive Edge Function kann nicht vor der Datenbankmigration umgestellt werden, weil sie dann den neuen RPC noch nicht vorfinden würde. Umgekehrt darf die Migration nicht vor der koordinierte App-/Edge-Cutover angewendet werden, weil Einladungen und UI sonst auseinanderlaufen.
+
+**Folge:** Migration und Edge Function bleiben unverändert in DEV. Der nächste sichere Schritt ist, einen kontrollierten DEV-Preview-/Deployment-Pfad für den Feature-Branch bereitzustellen oder die App mit einem Test-Deployment zu prüfen. Erst danach den Cutover in abgestimmter Reihenfolge durchführen.
