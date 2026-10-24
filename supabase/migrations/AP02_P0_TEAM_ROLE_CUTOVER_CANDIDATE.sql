@@ -153,7 +153,7 @@ begin
 end;
 $$;
 
-create or replace function public.get_team_trainers(p_team_id uuid)
+create or replace function public.get_team_trainers_v2(p_team_id uuid)
 returns table(user_id uuid, role text, admin_label text, email text, roles text[])
 language plpgsql stable security definer
 set search_path = pg_catalog, public, auth
