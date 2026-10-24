@@ -17,8 +17,12 @@ Deno.serve(async (req) => {
 
   try {
     const url = Deno.env.get("SUPABASE_URL");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const secretKeysRaw = Deno.env.get("SUPABASE_SECRET_KEYS");
+    const publishableKeysRaw = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+    let anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    if (!anonKey && publishableKeysRaw) {
+      try { anonKey = JSON.parse(publishableKeysRaw).default || ""; } catch { /* handled below */ }
+    }
     if (!url || !anonKey || !secretKeysRaw) {
       console.error("Erforderliche Supabase-Umgebungsvariablen fehlen.");
       return respond({ error: "Die Einladungsfunktion ist nicht korrekt konfiguriert." }, 500);
