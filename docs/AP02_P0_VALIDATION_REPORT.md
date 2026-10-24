@@ -105,3 +105,19 @@ Zusätzlich wurde die CI um Syntaxprüfungen für die Inline-JavaScript-Blöcke 
 Noch kein Browser-/Integrationstest der neuen App mit echtem Admin- und Trainerkonto. Die Feature-Branch-Version ist nicht auf der bekannten DEV-Webadresse `https://bautnhaus.github.io/jugendmannschaft-dev/` veröffentlicht. Die aktive Edge Function kann nicht vor der Datenbankmigration umgestellt werden, weil sie dann den neuen RPC noch nicht vorfinden würde. Umgekehrt darf die Migration nicht vor der koordinierte App-/Edge-Cutover angewendet werden, weil Einladungen und UI sonst auseinanderlaufen.
 
 **Folge:** Migration und Edge Function bleiben unverändert in DEV. Der nächste sichere Schritt ist, einen kontrollierten DEV-Preview-/Deployment-Pfad für den Feature-Branch bereitzustellen oder die App mit einem Test-Deployment zu prüfen. Erst danach den Cutover in abgestimmter Reihenfolge durchführen.
+
+## SQL-Testlauf – aktueller Stand (24.10.2026)
+
+Der aktuelle GitHub Actions Lauf ist erfolgreich: https://github.com/bautnhaus/jugendmannschaft-dev/actions/runs/40116673301
+
+Bestätigte Schritte:
+- Wegwerf-PostgreSQL-Datenbank vorbereitet und Ausgangsrollen geladen.
+- AP02-Cutover-Kandidat vollständig angewendet.
+- Rollen hinzufügen/entfernen ohne Überschreiben der jeweils anderen Rolle geprüft.
+- Schutz der letzten Admin-Rolle geprüft.
+- Audit-Log und Sperre der Legacy-RPCs geprüft.
+- Geschützte Trainername-RPC geprüft.
+- JavaScript-Syntax der App geprüft.
+- Deno-Prüfung der Einladungsfunktion erfolgreich.
+
+Dieser Lauf validiert die Migration nur in einer isolierten Testdatenbank mit vereinfachter Supabase-Struktur. Er ist keine Freigabe, die Migration im echten DEV auszuführen. Vor DEV-Cutover bleiben der Browser-Integrationstest und die abgestimmte Umstellung der deployten Edge Function erforderlich. Echte DEV-Datenbank und PROD wurden nicht verändert.
