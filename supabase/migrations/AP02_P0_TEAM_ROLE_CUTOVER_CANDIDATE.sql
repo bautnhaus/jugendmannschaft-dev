@@ -151,6 +151,54 @@ begin
 end;
 $$;
 
+-- Keep the existing trainer-label RPC compatible with the updated role source.
+-- The display label is membership metadata, not an authorization role.
+create or replace function public.admin_set_trainer_label(
+  p_team_id uuid, p_email text, p_label text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = pg_catalog, public, auth
+as $
+declare
+  v_user_id uuid;
+  v_label text := trim(coalesce(p_label, ''));
+begin
+  if auth.uid() is null or not public.is_team_admin(auth.uid(), p_team_id) then
+    raise exception 'Nicht berechtigt' using errcode = '42501';
+  end if;
+  if v_label = '' then
+    raise exception 'Trainername darf nicht leer sein' using errcode = '22023';
+  end if;
+
+  select u.id into v_user_id
+  from auth.users u
+  where lower(u.email) = lower(trim(p_email))
+  limit 1;
+
+  if v_user_id is null then
+    raise exception 'Kein Benutzer mit dieser E-Mail-Adresse gefunden' using errcode = '22023';
+  end if;
+  if not exists (
+    select 1 from public.team_member_roles r
+    where r.team_id = p_team_id and r.user_id = v_user_id
+  ) then
+    raise exception 'Person gehört nicht zur Mannschaft' using errcode = '22023';
+  end if;
+
+  update public.team_members
+  set admin_label = v_label
+  where team_id = p_team_id and user_id = v_user_id;
+  if not found then
+    raise exception 'Teammitgliedschafts-Metadaten fehlen' using errcode = '23503';
+  end if;
+  return true;
+end;
+$;
+revoke all on function public.admin_set_trainer_label(uuid,text,text) from public, anon;
+grant execute on function public.admin_set_trainer_label(uuid,text,text) to authenticated;
+
 create or replace function public.get_team_trainers_v2(p_team_id uuid)
 returns table(user_id uuid, role text, admin_label text, email text, roles text[])
 language plpgsql stable security definer
@@ -298,7 +346,7 @@ using (user_id = auth.uid());
 revoke insert, update, delete on public.team_member_roles from authenticated;
 -- Legacy role is no longer writable through the Data API. Keep only the
 -- existing admin_label edit path; role/membership changes go through RPCs.
-revoke insert, update, delete on public.team_members from authenticated;
+revoke insert, update, delete on public.team_members from anon, authenticated;
 grant update (admin_label) on public.team_members to authenticated;
 revoke insert, update, delete on public.club_member_roles from authenticated;
 revoke insert, update, delete on public.global_user_roles from authenticated;
