@@ -3,7 +3,7 @@
 Stand: 24.10.2026  
 Zielumgebung: DEV-Projekt `pzazqvvoruqnqhcorbwx`  
 Branch: `feature/ap02-additive-team-roles`  
-Status: **Vorbereitung – nicht deployen / nicht ausführen**
+Status: **Draft in Feature-Branch – noch nicht ausführungsfreigegeben**
 
 ## Konkrete Befunde aus dem aktuellen DEV-Stand
 
@@ -30,14 +30,14 @@ Status: **Vorbereitung – nicht deployen / nicht ausführen**
 
 ## Noch zwingend vor einer produktiven Ausführung
 
-- [ ] SQL-Migration implementiert: neue Helferfunktionen, sichere Rollen-RPCs, RLS-Policies, Trigger, Audit-Log.
-- [ ] Edge Function `invite-trainer` aus Live-Quelle in dieses Repository übernommen und auf additive Rollen umgestellt.
-- [ ] Frontend auf Rollen-Arrays umgestellt: Laden, Anzeigen, Rolle hinzufügen/entfernen, letzter Admin, Einladung, E-Mail-Sichtbarkeit.
-- [ ] Berechtigungen für Club Admin / Super Admin kontextgebunden integriert, ohne bestehende Team-Policies versehentlich zu erweitern.
-- [ ] Konto-Löschung mit Rollen- und Vereinsdaten sowie Anonymisierung geklärt und getestet.
-- [ ] Exakter Preflight: Rollen-Set-Diff, verwaiste IDs, Clubs-/Teams-Zuordnung, RLS-/Trigger-Inventar.
-- [ ] Testmatrix auf DEV durchlaufen und nach jedem Schritt per SQL verifiziert.
-- [ ] Rollback-Plan, der nicht versucht, additive Rollen in eine einzelne Legacy-Rolle zurückzuschreiben.
+- [x] SQL-Kandidat vorbereitet: Rollen-Helfer, additive Rollen-RPCs, Rollen-RLS, Last-Admin-Trigger, Audit-Log und harter Rollen-Paritäts-Preflight. Noch nicht ausgeführt.
+- [x] Edge Function `invite-trainer` als versionierte additive-Rollen-Fassung im Feature-Branch vorbereitet. Noch nicht deployt.
+- [x] Frontend-Kandidat auf Rollen-Arrays umgestellt: Rollen laden, kombinierte Rollen anzeigen, Rollen einzeln hinzufügen/entfernen, Admin-Schutz und keine Legacy-Rollen-Fallbacks. Noch nicht im Browser getestet.
+- [ ] Club Admin / Super Admin kontextgebundene Berechtigungen bleiben bewusst außerhalb dieses Teamrollen-Cutovers; dafür ist eine eigene, explizite Kontextauswahl erforderlich.
+- [ ] Konto-Löschung mit Rollen- und Vereinsdaten sowie Anonymisierung bleibt separat offen.
+- [ ] Vollständiger Preflight: Rollen-Set-Diff, verwaiste IDs, Clubs-/Teams-Zuordnung, RLS-/Trigger-Inventar. Die Live-Rollen stimmen aktuell überein; die Migration enthält zusätzlich einen harten Paritätsabbruch.
+- [x] DEV-Testmatrix dokumentiert; [ ] Tests müssen noch auf DEV ausgeführt werden.
+- [ ] Rollback-Plan finalisieren; er darf additive Rollen nicht in eine einzelne Legacy-Rolle zurückschreiben.
 
 ## Ausführungsreihenfolge
 
@@ -50,3 +50,18 @@ Status: **Vorbereitung – nicht deployen / nicht ausführen**
 7. Erst nach erfolgreicher manueller Testmatrix Release-Kandidat erstellen.
 
 **Kein Cutover mit einer Mischphase, in der Datenbankfunktionen schon das neue Modell verwenden, die App aber weiterhin direkt `team_members.role` ändert.**
+
+## Dateien im Feature-Branch
+
+- `supabase/migrations/AP02_P0_TEAM_ROLE_CUTOVER_CANDIDATE.sql`
+- `supabase/functions/invite-trainer/index.ts`
+- `index.html`
+- `docs/AP02_P0_DEV_TEST_MATRIX.md`
+
+## Vor dem ersten DEV-Cutover noch erforderlich
+
+1. Migration unabhängig gegen PostgreSQL/Supabase-Syntax und Trigger-/RLS-Abhängigkeiten validieren.
+2. Edge Function auf erforderliche Umgebungsvariablen und Auth-JWT-Weitergabe prüfen.
+3. Frontend-Syntax prüfen und die App im Browser auf DEV mit Admin- und Trainerkonto testen.
+4. Erst dann Migration ausführen; anschließend Edge Function deployen und Frontend aus diesem Branch in DEV testen.
+5. Club Admin / Super Admin und Kontolöschung nicht als erledigt markieren; diese Rechte sind nicht Bestandteil dieses Cutovers.
