@@ -1,0 +1,235 @@
+-- AP02 P0 – candidate migration, NOT YET APPROVED FOR EXECUTION
+-- Target: DEV only. Requires coordinated frontend + invite-trainer cutover.
+-- Preconditions: role-set parity preflight passes; app/edge updates are ready.
+begin;
+
+-- Fixed search_path and SECURITY DEFINER are intentional: these helpers must read
+-- role tables protected by RLS. EXECUTE is limited to authenticated callers.
+create or replace function public.is_team_member(p_team_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = pg_catalog, public
+as $$
+  select auth.uid() is not null and (
+    exists (
+      select 1 from public.team_member_roles r
+      where r.team_id = p_team_id and r.user_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.global_user_roles g
+      where g.user_id = auth.uid() and g.role = 'super_admin'
+    )
+  );
+$$;
+
+create or replace function public.is_team_member(p_user_id uuid, p_team_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = pg_catalog, public
+as $$
+  select p_user_id is not null and (
+    exists (
+      select 1 from public.team_member_roles r
+      where r.team_id = p_team_id and r.user_id = p_user_id
+    )
+    or exists (
+      select 1 from public.global_user_roles g
+      where g.user_id = p_user_id and g.role = 'super_admin'
+    )
+  );
+$$;
+
+create or replace function public.is_team_admin(p_team_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = pg_catalog, public
+as $$
+  select auth.uid() is not null and (
+    exists (
+      select 1 from public.team_member_roles r
+      where r.team_id = p_team_id and r.user_id = auth.uid() and r.role = 'admin'
+    )
+    or exists (
+      select 1 from public.global_user_roles g
+      where g.user_id = auth.uid() and g.role = 'super_admin'
+    )
+  );
+$$;
+
+create or replace function public.is_team_admin(p_user_id uuid, p_team_id uuid)
+returns boolean
+language sql stable security definer
+set search_path = pg_catalog, public
+as $$
+  select p_user_id is not null and (
+    exists (
+      select 1 from public.team_member_roles r
+      where r.team_id = p_team_id and r.user_id = p_user_id and r.role = 'admin'
+    )
+    or exists (
+      select 1 from public.global_user_roles g
+      where g.user_id = p_user_id and g.role = 'super_admin'
+    )
+  );
+$$;
+
+-- All role mutations go through these RPCs. A role is added/removed independently;
+-- the caller cannot accidentally overwrite the other role.
+create or replace function public.admin_add_team_role(
+  p_team_id uuid, p_user_id uuid, p_role text
+)
+returns void
+language plpgsql security definer
+set search_path = pg_catalog, public
+as $$
+begin
+  if auth.uid() is null or not public.is_team_admin(auth.uid(), p_team_id) then
+    raise exception 'Nicht berechtigt' using errcode = '42501';
+  end if;
+  if p_role not in ('admin','trainer') then
+    raise exception 'Ungültige Teamrolle' using errcode = '22023';
+  end if;
+  if not exists (select 1 from auth.users u where u.id = p_user_id) then
+    raise exception 'Benutzer nicht gefunden' using errcode = '22023';
+  end if;
+
+  insert into public.team_members(team_id,user_id,role)
+  values (p_team_id,p_user_id,'trainer')
+  on conflict (team_id,user_id) do nothing;
+
+  insert into public.team_member_roles(team_id,user_id,role)
+  values (p_team_id,p_user_id,p_role)
+  on conflict (team_id,user_id,role) do nothing;
+end;
+$$;
+
+create or replace function public.admin_remove_team_role(
+  p_team_id uuid, p_user_id uuid, p_role text
+)
+returns void
+language plpgsql security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_admin_count integer;
+begin
+  if auth.uid() is null or not public.is_team_admin(auth.uid(), p_team_id) then
+    raise exception 'Nicht berechtigt' using errcode = '42501';
+  end if;
+  if p_role not in ('admin','trainer') then
+    raise exception 'Ungültige Teamrolle' using errcode = '22023';
+  end if;
+
+  -- Serialize role removals for this team so concurrent requests cannot remove
+  -- the final admin simultaneously.
+  perform 1 from public.teams t where t.id = p_team_id for update;
+  if not found then raise exception 'Mannschaft nicht gefunden'; end if;
+
+  if p_role = 'admin' then
+    select count(*) into v_admin_count
+    from public.team_member_roles r
+    where r.team_id = p_team_id and r.role = 'admin';
+    if exists (
+      select 1 from public.team_member_roles r
+      where r.team_id=p_team_id and r.user_id=p_user_id and r.role='admin'
+    ) and v_admin_count <= 1 then
+      raise exception 'Der letzte Team-Admin kann nicht entfernt werden'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  delete from public.team_member_roles
+  where team_id=p_team_id and user_id=p_user_id and role=p_role;
+
+  -- Preserve team membership while any role remains; remove the legacy metadata
+  -- row only when no roles remain (admin_label then disappears with membership).
+  if not exists (
+    select 1 from public.team_member_roles r
+    where r.team_id=p_team_id and r.user_id=p_user_id
+  ) then
+    delete from public.team_members
+    where team_id=p_team_id and user_id=p_user_id;
+  end if;
+end;
+$$;
+
+create or replace function public.get_team_trainers(p_team_id uuid)
+returns table(user_id uuid, role text, admin_label text, email text, roles text[])
+language plpgsql stable security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if auth.uid() is null or not public.is_team_admin(auth.uid(), p_team_id) then
+    raise exception 'Nicht berechtigt' using errcode = '42501';
+  end if;
+
+  return query
+  select tm.user_id,
+         case when bool_or(r.role='admin') then 'admin' else 'trainer' end,
+         coalesce(tm.admin_label,''),
+         u.email::text,
+         array_agg(r.role order by r.role)
+  from public.team_members tm
+  join public.team_member_roles r
+    on r.team_id=tm.team_id and r.user_id=tm.user_id
+  left join auth.users u on u.id=tm.user_id
+  where tm.team_id=p_team_id
+  group by tm.user_id,tm.admin_label,u.email
+  order by coalesce(tm.admin_label,''),u.email;
+end;
+$$;
+
+-- RLS is enabled on these role tables already, but there are currently no policies.
+-- Deny direct client writes; privileged, explicitly checked RPCs perform mutations.
+alter table public.team_member_roles enable row level security;
+alter table public.club_member_roles enable row level security;
+alter table public.global_user_roles enable row level security;
+alter table public.club_members enable row level security;
+alter table public.clubs enable row level security;
+
+drop policy if exists team_member_roles_read_self_or_team_admin on public.team_member_roles;
+create policy team_member_roles_read_self_or_team_admin
+on public.team_member_roles for select to authenticated
+using (user_id = auth.uid() or public.is_team_admin(team_id));
+
+drop policy if exists club_member_roles_read_self on public.club_member_roles;
+create policy club_member_roles_read_self
+on public.club_member_roles for select to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists global_user_roles_read_self on public.global_user_roles;
+create policy global_user_roles_read_self
+on public.global_user_roles for select to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists club_members_read_self on public.club_members;
+create policy club_members_read_self
+on public.club_members for select to authenticated
+using (user_id = auth.uid());
+
+-- Do not expose club records or role-table writes in this team-role cutover.
+-- Club Admin / Super Admin club-scoped policies belong to the separate AP02
+-- club-access migration, which must be reviewed together with its UI.
+revoke insert, update, delete on public.team_member_roles from authenticated;
+revoke insert, update, delete on public.club_member_roles from authenticated;
+revoke insert, update, delete on public.global_user_roles from authenticated;
+revoke insert, update, delete on public.club_members from authenticated;
+revoke insert, update, delete on public.clubs from authenticated;
+
+revoke all on function public.admin_add_team_role(uuid,uuid,text) from public, anon;
+revoke all on function public.admin_remove_team_role(uuid,uuid,text) from public, anon;
+grant execute on function public.admin_add_team_role(uuid,uuid,text) to authenticated;
+grant execute on function public.admin_remove_team_role(uuid,uuid,text) to authenticated;
+
+-- These replacements change authorization for every policy using these helpers.
+-- Do not apply until frontend and Edge Function are ready for the same cutover.
+revoke all on function public.is_team_member(uuid) from public, anon;
+revoke all on function public.is_team_member(uuid,uuid) from public, anon;
+revoke all on function public.is_team_admin(uuid) from public, anon;
+revoke all on function public.is_team_admin(uuid,uuid) from public, anon;
+grant execute on function public.is_team_member(uuid) to authenticated;
+grant execute on function public.is_team_member(uuid,uuid) to authenticated;
+grant execute on function public.is_team_admin(uuid) to authenticated;
+grant execute on function public.is_team_admin(uuid,uuid) to authenticated;
+
+commit;
