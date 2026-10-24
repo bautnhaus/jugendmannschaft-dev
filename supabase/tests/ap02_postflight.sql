@@ -32,6 +32,21 @@ begin
   exception when check_violation then
     null;
   end;
+  if not public.admin_set_trainer_label(
+    '20000000-0000-0000-0000-000000000001',
+    'trainer@example.test',
+    'Test Trainer'
+  ) then
+    raise exception 'trainer label RPC did not return success';
+  end if;
+  if not exists (
+    select 1 from public.team_members
+    where team_id='20000000-0000-0000-0000-000000000001'
+      and user_id='10000000-0000-0000-0000-000000000002'
+      and admin_label='Test Trainer'
+  ) then
+    raise exception 'trainer label RPC did not update metadata';
+  end if;
   select count(*) into v_count from public.team_role_change_log;
   if v_count < 2 then raise exception 'role change audit log did not record changes'; end if;
   raise notice 'AP02 isolated migration and role checks passed';
