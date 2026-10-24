@@ -2563,7 +2563,7 @@ window.editTrainerLabel=async userId=>{
   if(!clean){showStatus('Der Trainername darf nicht leer sein.','error');return;}
   if(state.trainers.some(x=>x.user_id!==userId&&(x.admin_label||'').toLowerCase()===clean.toLowerCase())){showStatus('Dieser Trainername ist bereits vergeben.','error');return;}
   try{
-    const {error}=await getClient().from('team_members').update({admin_label:clean}).eq('team_id',team).eq('user_id',userId);
+    const {error}=await getClient().rpc('admin_set_trainer_label',{p_team_id:team,p_email:target.email,p_label:clean});
     if(error)throw error;
     target.admin_label=clean;renderTrainerList();showStatus('Trainername gespeichert.','ok');
   }catch(e){showStatus('Trainername konnte nicht gespeichert werden: '+(e.message||e),'error');}
