@@ -92,7 +92,7 @@ begin
   end if;
 
   insert into public.team_members(team_id,user_id,role)
-  values (p_team_id,p_user_id,'trainer')
+  values (p_team_id,p_user_id,p_role)
   on conflict (team_id,user_id) do nothing;
 
   insert into public.team_member_roles(team_id,user_id,role)
