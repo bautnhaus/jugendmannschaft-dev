@@ -251,6 +251,17 @@ create trigger audit_team_role_delete after delete on public.team_member_roles
 for each row execute function public.log_team_role_change();
 revoke insert, update, delete on public.team_role_change_log from authenticated;
 
+-- Close the permissive legacy player-position policies. PostgreSQL ORs permissive
+-- policies, so membership-only INSERT/DELETE policies bypassed the admin policies.
+drop policy if exists "Team members can insert player positions" on public.player_positions;
+drop policy if exists "Team members can delete player positions" on public.player_positions;
+
+-- Old RPCs mutate/read the one-role legacy model and are not used by the
+-- additive-role frontend. Remove authenticated/anonymous execute access.
+-- Keep admin_set_trainer_label because the existing UI still uses it.
+revoke all on function public.add_team_member_by_email(text,text,uuid) from public, anon, authenticated;
+revoke all on function public.get_team_trainers(uuid) from public, anon, authenticated;
+
 -- RLS is enabled on these role tables already, but there are currently no policies.
 -- Deny direct client writes; privileged, explicitly checked RPCs perform mutations.
 alter table public.team_member_roles enable row level security;
