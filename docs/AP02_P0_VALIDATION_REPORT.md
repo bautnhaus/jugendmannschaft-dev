@@ -50,3 +50,25 @@ Der Frontend-Quelltext wurde durchsucht, aber nicht in einem Browser mit Trainer
 ## Schlussfolgerung
 
 Der Branch ist ein brauchbarer **Implementierungsentwurf**, aber kein ausführungsreifer Cutover. Nicht mergen, nicht auf DEV anwenden und nicht deployen, bis die Blocker abgearbeitet und die Tests dokumentiert sind.
+
+## Nacharbeit im Feature-Branch – 24.10.2026
+
+Die folgenden Blocker wurden als Codeänderungen ergänzt; sie sind weiterhin **nicht auf DEV angewendet**:
+
+- [x] Entfernt die permissiven Mitgliedschafts-Policies für `player_positions` INSERT/DELETE; die vorhandenen Admin-Policies bleiben die maßgeblichen Schreibregeln.
+- [x] Entzieht authentifizierten/anon/public Aufrufern EXECUTE auf die alten Ein-Rollen-RPCs `add_team_member_by_email` und `get_team_trainers`.
+- [x] Entzieht EXECUTE auf die bisher unsichere `delete_my_account()`-Funktion, bis Anonymisierung und Rollen-/Vereinsdaten korrekt behandelt werden.
+- [x] Frontend zeigt bei mehr als einer Mannschaft einen sicheren Fehler, statt willkürlich `members[0]` als Kontext zu wählen.
+- [x] Frontend-Kontolöschung ist vorübergehend deaktiviert und erklärt den Grund.
+
+## Verbleibende Validierung
+
+- [ ] SQL gegen eine echte isolierte PostgreSQL/Supabase-Instanz ausführen, nicht nur strukturell prüfen.
+- [ ] Privilegien und RLS im echten DEV-Cutover nachweisen.
+- [ ] Frontend-Syntaxprüfung und Browser-Regressionstests ausführen.
+- [ ] Edge Function mit der tatsächlichen DEV-Umgebung testen.
+- [ ] Explizite Mannschaftsauswahl implementieren, bevor Benutzer mit mehreren Mannschaften unterstützt werden.
+- [ ] Kontolöschung/Anonymisierung als eigenes fachliches und technisches Paket neu entwerfen.
+- [ ] Prüfen, ob andere, nicht im Frontend gefundene Aufrufer die deaktivierten Legacy-RPCs verwenden.
+
+Diese Nacharbeit reduziert konkrete Risiken, ersetzt aber keinen Testlauf. Der PR bleibt Draft und die Migration bleibt nicht freigegeben.
