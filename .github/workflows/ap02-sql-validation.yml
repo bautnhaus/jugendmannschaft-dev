@@ -1,0 +1,46 @@
+name: AP02 isolated SQL validation
+
+on:
+  push:
+    branches: [feature/ap02-additive-team-roles]
+  pull_request:
+    branches: [main]
+
+jobs:
+  migration-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: ap02_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ap02_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare disposable Supabase-like schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/tests/ap02_fixture.sql
+      - name: Seed role parity
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/tests/ap02_seed.sql
+      - name: Apply candidate migration in disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/migrations/AP02_P0_TEAM_ROLE_CUTOVER_CANDIDATE.sql
+      - name: Verify role behavior and privileges
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/tests/ap02_postflight.sql
