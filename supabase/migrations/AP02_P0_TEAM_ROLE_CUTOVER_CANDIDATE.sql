@@ -28,15 +28,9 @@ returns boolean
 language sql stable security definer
 set search_path = pg_catalog, public
 as $$
-  select auth.uid() is not null and (
-    exists (
-      select 1 from public.team_member_roles r
-      where r.team_id = p_team_id and r.user_id = auth.uid()
-    )
-    or exists (
-      select 1 from public.global_user_roles g
-      where g.user_id = auth.uid() and g.role = 'super_admin'
-    )
+  select auth.uid() is not null and exists (
+    select 1 from public.team_member_roles r
+    where r.team_id = p_team_id and r.user_id = auth.uid()
   );
 $$;
 
@@ -45,15 +39,9 @@ returns boolean
 language sql stable security definer
 set search_path = pg_catalog, public
 as $$
-  select p_user_id is not null and (
-    exists (
-      select 1 from public.team_member_roles r
-      where r.team_id = p_team_id and r.user_id = p_user_id
-    )
-    or exists (
-      select 1 from public.global_user_roles g
-      where g.user_id = p_user_id and g.role = 'super_admin'
-    )
+  select p_user_id is not null and exists (
+    select 1 from public.team_member_roles r
+    where r.team_id = p_team_id and r.user_id = p_user_id
   );
 $$;
 
@@ -62,15 +50,9 @@ returns boolean
 language sql stable security definer
 set search_path = pg_catalog, public
 as $$
-  select auth.uid() is not null and (
-    exists (
-      select 1 from public.team_member_roles r
-      where r.team_id = p_team_id and r.user_id = auth.uid() and r.role = 'admin'
-    )
-    or exists (
-      select 1 from public.global_user_roles g
-      where g.user_id = auth.uid() and g.role = 'super_admin'
-    )
+  select auth.uid() is not null and exists (
+    select 1 from public.team_member_roles r
+    where r.team_id = p_team_id and r.user_id = auth.uid() and r.role = 'admin'
   );
 $$;
 
@@ -79,15 +61,9 @@ returns boolean
 language sql stable security definer
 set search_path = pg_catalog, public
 as $$
-  select p_user_id is not null and (
-    exists (
-      select 1 from public.team_member_roles r
-      where r.team_id = p_team_id and r.user_id = p_user_id and r.role = 'admin'
-    )
-    or exists (
-      select 1 from public.global_user_roles g
-      where g.user_id = p_user_id and g.role = 'super_admin'
-    )
+  select p_user_id is not null and exists (
+    select 1 from public.team_member_roles r
+    where r.team_id = p_team_id and r.user_id = p_user_id and r.role = 'admin'
   );
 $$;
 
