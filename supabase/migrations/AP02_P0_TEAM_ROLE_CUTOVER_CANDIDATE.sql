@@ -184,7 +184,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog, public
-as $
+as $$
 declare v_team_exists boolean; v_admin_exists boolean;
 begin
   if old.role is distinct from 'admin' then return null; end if;
@@ -230,7 +230,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog, public
-as $
+as $$
 begin
   if tg_op = 'INSERT' then
     insert into public.team_role_change_log(actor_user_id,affected_user_id,team_id,action,role)
