@@ -8,13 +8,17 @@ begin;
 do $preflight$
 begin
   if exists (
-    (select team_id,user_id,role from public.team_members)
-    except
-    (select team_id,user_id,role from public.team_member_roles)
+    select 1 from (
+      select team_id,user_id,role from public.team_members
+      except
+      select team_id,user_id,role from public.team_member_roles
+    ) legacy_only
   ) or exists (
-    (select team_id,user_id,role from public.team_member_roles)
-    except
-    (select team_id,user_id,role from public.team_members)
+    select 1 from (
+      select team_id,user_id,role from public.team_member_roles
+      except
+      select team_id,user_id,role from public.team_members
+    ) new_only
   ) then
     raise exception 'AP02 preflight failed: team_members and team_member_roles role sets differ. No changes applied.';
   end if;
