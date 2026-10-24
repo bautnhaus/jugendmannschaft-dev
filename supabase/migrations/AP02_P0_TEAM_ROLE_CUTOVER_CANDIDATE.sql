@@ -279,6 +279,10 @@ using (user_id = auth.uid());
 -- Club Admin / Super Admin club-scoped policies belong to the separate AP02
 -- club-access migration, which must be reviewed together with its UI.
 revoke insert, update, delete on public.team_member_roles from authenticated;
+-- Legacy role is no longer writable through the Data API. Keep only the
+-- existing admin_label edit path; role/membership changes go through RPCs.
+revoke insert, update, delete on public.team_members from authenticated;
+grant update (admin_label) on public.team_members to authenticated;
 revoke insert, update, delete on public.club_member_roles from authenticated;
 revoke insert, update, delete on public.global_user_roles from authenticated;
 revoke insert, update, delete on public.club_members from authenticated;
