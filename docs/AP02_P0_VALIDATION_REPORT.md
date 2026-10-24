@@ -72,3 +72,7 @@ Die folgenden Blocker wurden als Codeänderungen ergänzt; sie sind weiterhin **
 - [ ] Prüfen, ob andere, nicht im Frontend gefundene Aufrufer die deaktivierten Legacy-RPCs verwenden.
 
 Diese Nacharbeit reduziert konkrete Risiken, ersetzt aber keinen Testlauf. Der PR bleibt Draft und die Migration bleibt nicht freigegeben.
+
+## Isolierter PostgreSQL-Lauf – erster Befund
+
+GitHub Actions hat die Fixture erfolgreich erstellt und die Rollen-Parität gesät. Der erste tatsächliche Apply-Test stoppte bei der Migration wegen fehlerhafter Abschluss-Begrenzer in zwei PL/pgSQL-Funktionen (`prevent_last_team_admin_removal` und `log_team_role_change`). Die SQL-Datei wurde korrigiert; der nächste Lauf muss die korrigierte Revision erneut anwenden und die Postflight-Prüfungen ausführen. Der fehlgeschlagene Lauf hat nur die kurzlebige Testdatenbank verwendet; DEV und PROD blieben unberührt.
