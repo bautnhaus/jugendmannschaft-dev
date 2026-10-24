@@ -78,3 +78,19 @@ jobs:
           deno-version: v2.x
       - name: Check invite Edge Function
         run: deno check supabase/functions/invite-trainer/index.ts
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ap02-http.log 2>&1 &
+          echo $! >/tmp/ap02-http.pid
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ap02-http.log
+          exit 1
+      - name: Run isolated browser smoke test
+        run: npx playwright test supabase/tests/ap02_browser.spec.js --reporter=line
