@@ -1798,11 +1798,12 @@ async function loadApp(){
   if(me)throw me;if(!members?.length)throw new Error('Dieser Trainer ist noch keiner Mannschaft zugeordnet.');
   const availableTeams=[...new Set(members.map(m=>m.team_id))];if(availableTeams.length>1)throw new Error('Dein Konto gehört zu mehreren Mannschaften. Die sichere Mannschaftsauswahl ist noch nicht verfügbar. Bitte nutze die App erst wieder, wenn eine Mannschaft explizit ausgewählt werden kann.');team=availableTeams[0];currentTeamRoles=[...new Set(members.filter(m=>m.team_id===team).map(m=>m.role))];role=currentTeamRoles.includes('admin')?'admin':'trainer';const currentRoleLabel=currentTeamRoles.map(r=>r==='admin'?'Admin':'Trainer').join(' + ')||'Trainer';
   state.trainers=[];
-  const {data:trainerRows,error:trainerError}=await c.rpc('get_team_trainers_v2',{p_team_id:team});
-  if(trainerError){
-    console.warn('Trainerdaten konnten nicht vollständig geladen werden:',trainerError.message);
-    throw new Error('Die Rollenliste konnte nicht sicher geladen werden. Bitte Seite neu laden oder Admin kontaktieren.');
-  }else{
+  if(role==='admin'){
+    const {data:trainerRows,error:trainerError}=await c.rpc('get_team_trainers_v2',{p_team_id:team});
+    if(trainerError){
+      console.warn('Trainerdaten konnten nicht vollständig geladen werden:',trainerError.message);
+      throw new Error('Die Rollenliste konnte nicht sicher geladen werden. Bitte Seite neu laden oder Admin kontaktieren.');
+    }
     state.trainers=(trainerRows||[]).map(m=>({user_id:m.user_id,roles:Array.isArray(m.roles)?m.roles:[m.role||'trainer'],role:(Array.isArray(m.roles)?m.roles:[m.role||'trainer']).includes('admin')?'admin':'trainer',admin_label:m.admin_label||'',email:m.email||''}));
   }
   const {data:teamRow,error:te}=await c.from('teams').select('id,name,recommended_squad_size').eq('id',team).single();if(te)throw te;recommendedSquadSize=Number(teamRow?.recommended_squad_size)||16;
