@@ -160,7 +160,7 @@ returns boolean
 language plpgsql
 security definer
 set search_path = pg_catalog, public, auth
-as $
+as $$
 declare
   v_user_id uuid;
   v_label text := trim(coalesce(p_label, ''));
@@ -195,7 +195,7 @@ begin
   end if;
   return true;
 end;
-$;
+$$;
 revoke all on function public.admin_set_trainer_label(uuid,text,text) from public, anon;
 grant execute on function public.admin_set_trainer_label(uuid,text,text) to authenticated;
 
