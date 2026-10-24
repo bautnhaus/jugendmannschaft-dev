@@ -1796,17 +1796,8 @@ async function loadApp(){
   const c=getClient();
   const {data:members,error:me}=await c.from('team_member_roles').select('team_id,user_id,role').eq('user_id',currentUser.id);
   if(me)throw me;if(!members?.length)throw new Error('Dieser Trainer ist noch keiner Mannschaft zugeordnet.');
-  team=members[0].team_id;currentTeamRoles=[...new Set(members.filter(m=>m.team_id===team).map(m=>m.role))];role=currentTeamRoles.includes('admin')?'admin':'trainer';
+  team=members[0].team_id;currentTeamRoles=[...new Set(members.filter(m=>m.team_id===team).map(m=>m.role))];role=currentTeamRoles.includes('admin')?'admin':'trainer';const currentRoleLabel=currentTeamRoles.map(r=>r==='admin'?'Admin':'Trainer').join(' + ')||'Trainer';
   state.trainers=[];
-  let teamMembers=[];
-  {
-    const r=await c.from('team_members').select('user_id,role,admin_label').eq('team_id',team);
-    if(r.error){
-      const fallback=await c.from('team_members').select('user_id,role').eq('team_id',team);
-      if(fallback.error)throw fallback.error;
-      teamMembers=(fallback.data||[]).map(x=>({...x,admin_label:''}));
-    }else teamMembers=r.data||[];
-  }
   const {data:trainerRows,error:trainerError}=await c.rpc('get_team_trainers_v2',{p_team_id:team});
   if(trainerError){
     console.warn('Trainerdaten konnten nicht vollständig geladen werden:',trainerError.message);
@@ -1858,7 +1849,7 @@ async function loadApp(){
   currentMatchdayId=null;matchdaySelection=new Set();
   if($('recommendedSquadSizeInput'))$('recommendedSquadSizeInput').value=String(recommendedSquadSize);
   $('headerSub').textContent=(teamRow?.name||'Jugendmannschaft')+(season?' · Saison '+season.name:'')+' · '+(role==='admin'?'Admin':'Trainer');
-  $('accountInfo').textContent=currentUser?.email?`Angemeldet als ${currentUser.email} · Rolle: ${role}`:'';if($('accountEmail'))$('accountEmail').value=currentUser?.email||'';if($('settingsMainHeading'))$('settingsMainHeading').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsTab'))$('settingsTab').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsMainSub'))$('settingsMainSub').textContent=role==='admin'?'Mannschaft und App verwalten.':'Verwalte hier deinen Zugang zur Mannschafts-App.';if($('bottomSettingsLabel'))$('bottomSettingsLabel').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('bottomSettingsIcon'))$('bottomSettingsIcon').textContent=role==='admin'?'settings':'person';
+  $('accountInfo').textContent=currentUser?.email?`Angemeldet als ${currentUser.email} · Rolle: ${currentRoleLabel}`:'';if($('accountEmail'))$('accountEmail').value=currentUser?.email||'';if($('settingsMainHeading'))$('settingsMainHeading').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsTab'))$('settingsTab').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('settingsMainSub'))$('settingsMainSub').textContent=role==='admin'?'Mannschaft und App verwalten.':'Verwalte hier deinen Zugang zur Mannschafts-App.';if($('bottomSettingsLabel'))$('bottomSettingsLabel').textContent=role==='admin'?'Einstellungen':'Mein Konto';if($('bottomSettingsIcon'))$('bottomSettingsIcon').textContent=role==='admin'?'settings':'person';
   document.querySelectorAll('.adminOnly').forEach(x=>x.classList.toggle('hidden',role!=='admin'));
   $('loginView').classList.add('hidden');$('appView').classList.remove('hidden');renderAll();
 }
