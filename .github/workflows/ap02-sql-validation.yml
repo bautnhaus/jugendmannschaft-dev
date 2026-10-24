@@ -1,4 +1,5 @@
 name: AP02 isolated SQL validation
+# Trigger a fresh run including the isolated Playwright browser smoke test.
 
 on:
   push:
