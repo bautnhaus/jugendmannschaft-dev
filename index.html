@@ -1757,6 +1757,7 @@ window.changePassword=async()=>{try{const password=$('newPassword').value;if(pas
 window.deleteMyAccount=async()=>{showStatus('Die Kontolöschung ist vorübergehend deaktiviert, weil Rollen, Vereinszugehörigkeiten und historische Daten noch nicht vollständig sicher behandelt werden. Bitte wende dich an den Systemadministrator.','error');return;};
 window.addTrainerToTeam=async()=>{
   if(!adminGuard()) return;
+  let invitationCompleted=false;
   try {
     const label=$('trainerLabelAdd').value.trim();
     const email=$('trainerEmailAdd').value.trim().toLowerCase();
@@ -1769,25 +1770,32 @@ window.addTrainerToTeam=async()=>{
     const {data,error}=await getClient().functions.invoke('invite-trainer',{body:{email,role:newRole,team_id:team}});
     if(error) throw error;
     if(data?.error) throw new Error(data.error);
+    invitationCompleted=true;
 
     // Die E-Mail-Adressen in profiles sind aus Sicherheitsgründen nicht für jeden
     // Trainer direkt lesbar. Deshalb übernimmt eine geschützte RPC-Funktion die
     // Zuordnung E-Mail -> Benutzer und speichert den dauerhaften Admin-Namen.
     const {error:labelError}=await getClient().rpc('admin_set_trainer_label',{p_team_id:team,p_email:email,p_label:label});
-    if(labelError) throw labelError;
-    const saved=true;
-    if(!saved){
-      showStatus('Einladung wurde verschickt, aber der Trainername konnte noch nicht gespeichert werden. Bitte nach kurzer Zeit erneut laden und den Namen prüfen.','error');
+    $('trainerLabelAdd').value='';$('trainerEmailAdd').value='';
+    if(labelError){
+      showStatus('Einladung und Rolle wurden gespeichert, aber der Trainername konnte nicht gespeichert werden. Bitte später erneut prüfen.','error');
     }else{
-      $('trainerLabelAdd').value='';$('trainerEmailAdd').value='';
       showStatus(data?.message||'Die Einladung wurde erfolgreich verschickt.','ok');
     }
-    await loadApp();
+    try { await loadApp(); }
+    catch(refreshError) {
+      console.error('Einladung erfolgreich; Aktualisieren der Ansicht fehlgeschlagen:',refreshError);
+      showStatus('Einladung und Rolle wurden gespeichert. Die Ansicht konnte nicht aktualisiert werden; bitte Seite neu laden.','error');
+    }
   } catch(e) {
     console.error('invite-trainer:',e);
     let message=e?.message||String(e);
     if(e?.context){try{const body=await e.context.json();if(body?.error)message=body.error;}catch{}}
-    showStatus('Trainer konnte nicht eingeladen werden: '+message,'error');
+    if(invitationCompleted){
+      showStatus('Einladung und Rolle wurden gespeichert, aber ein nachfolgender Schritt ist fehlgeschlagen: '+message,'error');
+    }else{
+      showStatus('Trainer konnte nicht eingeladen werden: '+message,'error');
+    }
   }
 };
 window.logout=async()=>{if(supabase)await supabase.auth.signOut();currentUser=null;team=null;season=null;$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');setLoginMsg('Abgemeldet.');};
