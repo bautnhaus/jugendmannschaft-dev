@@ -81,6 +81,8 @@ jobs:
         run: deno check supabase/functions/invite-trainer/index.ts
       - name: Check invite authorization contract
         run: python3 supabase/tests/ap02_invite_contract.py
+      - name: Test invitation and role-change UI workflows
+        run: node supabase/tests/ap02_ui_workflows.test.cjs
       - name: Install Playwright
         run: |
           npm install --no-save @playwright/test
