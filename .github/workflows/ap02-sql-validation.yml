@@ -1,0 +1,101 @@
+name: AP02 isolated SQL validation
+# Trigger a fresh run including the isolated Playwright browser smoke test.
+
+on:
+  push:
+    branches: [feature/ap02-additive-team-roles]
+  pull_request:
+    branches: [main]
+
+jobs:
+  migration-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: ap02_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ap02_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare disposable Supabase-like schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/tests/ap02_fixture.sql
+      - name: Seed role parity
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/tests/ap02_seed.sql
+      - name: Apply candidate migration in disposable database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/migrations/AP02_P0_TEAM_ROLE_CUTOVER_CANDIDATE.sql
+      - name: Verify role behavior and privileges
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d ap02_test -v ON_ERROR_STOP=1 -f supabase/tests/ap02_postflight.sql
+      - name: Check inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Scripts(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.in_script = False
+                  self.current = []
+                  self.scripts = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == "script":
+                      self.in_script = True
+                      self.current = []
+              def handle_data(self, data):
+                  if self.in_script:
+                      self.current.append(data)
+              def handle_endtag(self, tag):
+                  if tag.lower() == "script" and self.in_script:
+                      self.scripts.append("".join(self.current))
+                      self.in_script = False
+          parser = Scripts()
+          parser.feed(Path("index.html").read_text())
+          inline = [script for script in parser.scripts if script.strip()]
+          Path("/tmp/ap02-inline.js").write_text("\\n;\\n".join(inline))
+          print(f"Extracted {len(inline)} inline script blocks")
+          PY
+          node --check /tmp/ap02-inline.js
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check invite Edge Function
+        run: deno check supabase/functions/invite-trainer/index.ts
+      - name: Check invite authorization contract
+        run: python3 supabase/tests/ap02_invite_contract.py
+      - name: Test invitation and role-change UI workflows
+        run: node supabase/tests/ap02_ui_workflows.test.cjs
+      - name: Install Playwright
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ap02-http.log 2>&1 &
+          echo $! >/tmp/ap02-http.pid
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ap02-http.log
+          exit 1
+      - name: Run isolated browser smoke test
+        run: npx playwright test supabase/tests/ap02_browser.spec.js --reporter=line
