@@ -27,7 +27,7 @@ function harness({invokeResult={data:{message:'Einladung erfolgreich'},error:nul
     showStatus:(message,type)=>statuses.push({message,type}),
     renderTrainerList:()=>calls.push({method:'renderTrainerList'}),
     loadApp:async()=>{calls.push({method:'loadApp'});if(loadError)throw loadError;},
-    $(id)=>inputs[id] || {value:''},
+    $: (id)=>inputs[id] || {value:''},
     getClient:()=>({
       functions:{invoke:async(name,options)=>{calls.push({method:'invoke',name,options});return invokeResult;}},
       rpc:async(name,args)=>{
@@ -82,7 +82,7 @@ function harness({invokeResult={data:{message:'Einladung erfolgreich'},error:nul
   }
   // Removing one role must preserve the other role by calling only the remove-role RPC.
   {
-    const h=harness({roles:['trainer','admin']});
+    const h=harness({roles:['trainer','admin'],trainers:[{user_id:'user-2',roles:['trainer','admin'],role:'admin',admin_label:'Test Trainer',email:'test@example.test'},{user_id:'user-3',roles:['admin'],role:'admin',admin_label:'Other Admin',email:'other@example.test'}]});
     await h.context.window.changeTrainerRole('user-2','admin');
     assert.ok(h.calls.some(c=>c.method==='rpc'&&c.name==='admin_remove_team_role'&&c.args.p_role==='admin'));
     assert.ok(!h.calls.some(c=>c.method==='rpc'&&c.name==='admin_remove_team_role'&&c.args.p_role==='trainer'));
