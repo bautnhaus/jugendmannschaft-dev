@@ -79,6 +79,8 @@ jobs:
           deno-version: v2.x
       - name: Check invite Edge Function
         run: deno check supabase/functions/invite-trainer/index.ts
+      - name: Check invite authorization contract
+        run: python3 supabase/tests/ap02_invite_contract.py
       - name: Install Playwright
         run: |
           npm install --no-save @playwright/test
