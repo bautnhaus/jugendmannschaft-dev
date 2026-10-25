@@ -20,7 +20,7 @@ function harness({invokeResult={data:{message:'Einladung erfolgreich'},error:nul
     trainerEmailAdd:{value:'test@example.test'},
     trainerRoleAdd:{value:'trainer'}
   };
-  const state={trainers:trainers || [{user_id:'user-2',roles,role:roles.includes('admin')?'admin':'trainer',admin_label:'Test Trainer',email:'test@example.test'}]};
+  const state={trainers:trainers || [{user_id:'user-2',roles,role:roles.includes('admin')?'admin':'trainer',admin_label:'Existing Trainer',email:'existing@example.test'}]};
   const context={
     window:{}, state, team:'team-1', currentUser:{id:'user-1'}, console,
     adminGuard:()=>true,
