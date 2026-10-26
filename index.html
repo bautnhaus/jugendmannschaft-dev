@@ -1801,10 +1801,13 @@ window.addTrainerToTeam=async()=>{
     }
   }
 };
-window.logout=async()=>{if(supabase)await supabase.auth.signOut();currentUser=null;team=null;season=null;clubOnlyMode=false;isSuperAdmin=false;currentClubId=null;canManageClub=false;$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');setLoginMsg('Abgemeldet.');};
+window.logout=async()=>{if(supabase)await supabase.auth.signOut();currentUser=null;team=null;season=null;clubOnlyMode=false;isSuperAdmin=false;currentClubId=null;canManageClub=false;$('superAdminPanel')?.classList.add('hidden');$('clubAdminPanel')?.classList.add('hidden');$('appView').classList.add('hidden');$('loginView').classList.remove('hidden');setLoginMsg('Abgemeldet.');};
 
 async function loadApp(){
   const c=getClient();
+  // Wichtig beim Kontowechsel: Admin-Panels aus der vorherigen Sitzung nie übernehmen.
+  const platformPanelAtStart=$('superAdminPanel');if(platformPanelAtStart)platformPanelAtStart.classList.add('hidden');
+  const clubPanelAtStart=$('clubAdminPanel');if(clubPanelAtStart)clubPanelAtStart.classList.add('hidden');
   clubOnlyMode=false;isSuperAdmin=false;currentClubId=null;canManageClub=false;
   const {data:globalRoles,error:globalRoleError}=await c.from('global_user_roles').select('role').eq('user_id',currentUser.id);
   if(globalRoleError)throw globalRoleError;
