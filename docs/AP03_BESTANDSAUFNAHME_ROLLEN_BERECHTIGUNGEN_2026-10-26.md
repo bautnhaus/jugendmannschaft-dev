@@ -367,3 +367,57 @@ Die verbleibenden konkreten technischen Prüfprioritäten bleiben:
 2. `matchday_attendance_delete`: fehlende Spieler-/Team-Konsistenz im Vergleich zu INSERT.
 3. Direkte REST-/RPC-Negativtests für fremde Team-IDs und Änderungen von `team_id` an Spielerdatensätzen.
 4. Die Admin-only-Grenzen für Positionen, Rollen, Spielerkader-Archivierung/Reaktivierung und Backup-Import in der Datenbank bestätigen.
+
+
+## 17. Vertiefte Sicherheitsprüfung – read-only Befunde vom 26.10.2026
+
+### 17.1 Bestätigter Prüfpunkt: Teamwechsel eines Spielers über UPDATE-Policy
+
+Die aktuelle `players`-UPDATE-Policy verwendet `is_team_member(team_id)` sowohl in `USING` als auch in `WITH CHECK`. Damit wird geprüft, dass der Nutzer zum bisherigen bzw. neuen Team gehört. Die Policy bindet die neue `team_id` aber nicht an die ursprüngliche Mannschaft.
+
+**Folge:** Falls ein Nutzer Mitglied in mehreren Mannschaften ist, kann die Datenbankregel einen direkten UPDATE erlauben, der einen Spieler von einer Mannschaft in eine andere Mannschaft verschiebt, sofern der Nutzer beide Mannschaften verwalten/sehen darf. Das ist nicht durch einen realen API-Angriff getestet worden, aber aus der Policy-Bedingung ableitbar und widerspricht der Vorgabe, dass Trainer Spieler nur innerhalb ihrer eigenen Mannschaft bearbeiten sollen.
+
+**Empfohlene Korrektur:** Eine zusätzliche serverseitige Regel, die das Ändern von `players.team_id` über den normalen Trainer-Schreibpfad verhindert. Falls Mannschaftswechsel später benötigt werden, sollte dies ein eigener, ausdrücklich autorisierter Admin-Prozess sein. Erst mit einem gezielten negativen Test verifizieren; keine pauschale Verschärfung der übrigen Spielerstammdaten-UPDATE-Rechte.
+
+### 17.2 Bestätigter Frontend-/RLS-Widerspruch: Trainer können Positionen nicht zuverlässig speichern
+
+Das Frontend `savePlayer` aktualisiert zuerst den Spielerdatensatz, löscht anschließend vorhandene `player_positions` und fügt die gewählten Positionen neu ein. Die aktuellen RLS-Policies für INSERT und DELETE auf `player_positions` verlangen jedoch `is_team_admin(team_id)`.
+
+**Folge:** Ein Trainer ohne Adminrolle darf die Stammdaten des Spielers grundsätzlich bearbeiten, aber das Speichern der Positionen wird von der Datenbank abgewiesen. Da der Spielerdatensatz vorher aktualisiert wurde, kann es außerdem zu einer Teiländerung kommen, bei der Stammdaten gespeichert sind, Positionen aber nicht.
+
+Das ist keine zu weit gefasste Berechtigung, sondern ein Widerspruch zur bestätigten Soll-Regel, dass Trainer Spieler einschließlich Positionen bearbeiten dürfen.
+
+**Empfohlene Korrektur:** Den Speichervorgang atomar gestalten und Positionen für Teammitglieder derselben Mannschaft erlauben, dabei aber die Zuordnung von Spieler und Position an dasselbe Team binden. Die Änderung muss als separate DEV-Migration plus Frontend-Test erfolgen; hier wurde nichts geändert.
+
+### 17.3 Matchday-Anwesenheit DELETE – konkreter Unterschied
+
+`matchday_attendance_insert` und `matchday_attendance_update` prüfen, dass Spieler und Spieltag zur selben Mannschaft gehören. `matchday_attendance_delete` prüft aktuell nur, dass der Aufrufer Teammitglied der Mannschaft des Spieltags ist.
+
+Die Fremdschlüssel sichern ab, dass Spieltag und Spieler existieren; sie erzwingen aber nicht, dass beide zur selben Mannschaft gehören. Derzeit ist kein inkonsistenter Datensatz nachgewiesen. Ein solcher Datensatz könnte aber durch frühere Daten, privilegierte Pfade oder spätere Änderungen entstehen. Die DELETE-Regel sollte daher konsistent dieselbe Spieler-/Teamzuordnung prüfen wie INSERT/UPDATE.
+
+### 17.4 Einladungs-RPC – Ein-Verein-pro-Nutzer nicht explizit erzwungen
+
+Die aktuell installierte `admin_add_team_role`-Funktion:
+- prüft, dass der Aufrufer Teamadmin der angegebenen Mannschaft ist,
+- akzeptiert nur `admin` oder `trainer`,
+- prüft, dass das Zielkonto in `auth.users` existiert,
+- fügt `team_members` und `team_member_roles` ein,
+- prüft aber nicht, ob das Zielkonto Vereinsmitglied des Vereins ist, dem das Team zugeordnet ist, oder bereits einem anderen Verein angehört.
+
+Da `invite-trainer` diese Funktion verwendet und selbst keine Vereinszugehörigkeit ergänzt oder prüft, ist das Ein-Verein-pro-Nutzer-Modell im Einladungsweg nicht vollständig durchgesetzt. Die aktuelle Bestandsabfrage fand keine bestehenden Fälle; die Lücke betrifft die serverseitige Durchsetzung künftiger Einladungen.
+
+**Empfohlene Korrektur:** Vor Vergabe einer Teamrolle muss ein kontrollierter serverseitiger Ablauf prüfen, dass die Vereinsmitgliedschaft zum Teamverein passt. Für bestehende Nutzer aus einem anderen Verein muss der Vorgang fail-closed mit verständlicher Fehlermeldung abbrechen. Bei neuen Einladungen muss klar festgelegt sein, wer und wann die Vereinsmitgliedschaft anlegt; keine implizite Mehrfachmitgliedschaft und kein automatisches Umhängen bestehender Konten.
+
+### 17.5 Priorisierung für die Korrekturphase
+
+| Priorität | Befund | Art | Nächster Schritt |
+|---|---|---|---|
+| P1 | Einladungsweg erzwingt Vereinsmitgliedschaft nicht explizit | Sicherheits-/Datenmodell-Invariante | Sollablauf festlegen, dann RPC/Edge Function in DEV absichern |
+| P1 | Spieler-`team_id` kann bei Mitgliedschaft in mehreren Teams potenziell verändert werden | Teamgrenzen / Datenintegrität | `team_id`-Änderung im normalen UPDATE verhindern, Negativtest |
+| P1 | `matchday_attendance_delete` prüft Spieler-Team-Konsistenz nicht | RLS-Konsistenz | DELETE-Policy mit INSERT/UPDATE abgleichen |
+| P1 funktional | Trainer dürfen Positionen laut Soll bearbeiten, RLS verlangt Teamadmin | Rollen-/Frontend-Widerspruch | Policy und Speichervorgang atomar korrigieren |
+| P2 | Letzter Teamadmin und direkte Rollen-RPCs | bestehender Schutz, Integrationstest offen | nicht-destruktive/isolierte negative Tests vorbereiten |
+
+### 17.6 Grenzen dieser Prüfung
+
+Diese Ergebnisse stammen aus Definitionen der aktuellen RLS-Policies, RPCs, Constraints und Triggern sowie dem geprüften Frontend-/Edge-Function-Code. Es wurden keine schädlichen oder destruktiven API-Aufrufe durchgeführt. Ein realer Cross-Team- oder Cross-Club-Exploit ist damit nicht nachgewiesen. Die genannten Korrekturen sind Empfehlungen für die nächste DEV-Änderungsrunde, keine bereits umgesetzten Änderungen.
