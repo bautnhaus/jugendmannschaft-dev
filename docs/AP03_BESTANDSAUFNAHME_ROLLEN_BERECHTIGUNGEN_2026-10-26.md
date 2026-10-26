@@ -290,3 +290,18 @@ Die geprüften UI-Aktionen für Vereinsrollen und Teamrollen verwenden die oben 
 3. Nicht-destruktive negative Tests planen: angemeldeter Trainer versucht Admin-Aktion direkt über REST; fremde Trainer-`user_id` in Anwesenheitszeile; Spieler aus anderem Team in Matchday-Anwesenheit; direkte RPC-Aufrufe mit fremder Team-/Vereins-ID.
 4. Erst nach bestätigtem Befund und festgelegter Sollmatrix gezielte DEV-Policy-/RPC-Korrekturen als separate Migration umsetzen und testen.
 5. Keine Änderung an PROD und kein PR-Merge ohne ausdrückliche Freigabe.
+
+
+### 12.8 Ergänzender Befund: Einladungsweg stellt keine Vereinsmitgliedschaft sicher
+
+Die geprüfte Edge Function `supabase/functions/invite-trainer/index.ts`:
+1. authentifiziert den Aufrufer,
+2. prüft über `is_team_admin(p_team_id)` dessen Teamadmin-Rolle,
+3. lädt ein vorhandenes Konto oder lädt eine neue E-Mail-Adresse ein,
+4. ruft `admin_add_team_role(p_team_id,p_user_id,p_role)` auf.
+
+Die geprüfte RPC `admin_add_team_role` validiert Teamadmin, Rollenwert und Existenz des Auth-Kontos, prüft aber nicht ausdrücklich, ob das Zielkonto Mitglied des Vereins der Mannschaft ist. Sie legt nur `team_members` und `team_member_roles` an, nicht `club_members`.
+
+Die aktuelle DEV-Konsistenzabfrage fand **keine** bestehenden Teamrollen ohne passende Mitgliedschaft im zugeordneten Verein. Das beweist jedoch nicht, dass neue Einladungen diese Invariante einhalten: Im Codepfad ist keine solche Vereinsmitgliedschaftsprüfung erkennbar. Da `invite-trainer` ein neues Konto anlegen und danach direkt eine Teamrolle setzen kann, ist das ein konkreter Prüfpunkt für das Ein-Verein-pro-Nutzer-Modell.
+
+**Priorität: P1 – vor weiteren Änderungen am Einladungsablauf klären.** Soll jede Mannschaftszuordnung zwingend eine Vereinsmitgliedschaft voraussetzen? Falls ja, sollte die Prüfung serverseitig atomar bzw. in einem kontrollierten RPC-/Einladungsablauf durchgesetzt werden. Dabei darf ein bereits einem anderen Verein zugeordnetes Konto nicht stillschweigend übernommen werden. Keine Änderung wurde vorgenommen.
