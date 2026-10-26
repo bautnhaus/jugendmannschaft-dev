@@ -470,3 +470,9 @@ Die zugehörigen SQL-Dateien liegen im Branch `feature/ap03-security-fixes` unte
 - Frontend: geändert, aber nicht deployed.
 - Branch: `feature/ap03-security-fixes`.
 - Kein PR-Merge, kein GitHub-Pages-Deployment und keine PROD-Änderung.
+
+
+### Ergänzende Prüfung nach der Dokumentation
+
+- [x] `save_player_with_positions` wurde zusätzlich als authentifizierter Trainer zum Anlegen eines neuen Spielers samt Position in einer Transaktion aufgerufen; danach wurde zurückgerollt. Die Nachabfrage bestätigte, dass der temporäre Testspieler nicht gespeichert wurde.
+- [x] Die beiden Migrationsdateien wurden auf die tatsächlich von Supabase registrierten Versionsnummern ausgerichtet: `20261026210356_ap03_security_fixes_v1_dev.sql` und `20261026210440_ap03_security_fixes_hardening_v1_dev.sql`. Damit stimmen Dateinamen und DEV-Migrationshistorie überein.
