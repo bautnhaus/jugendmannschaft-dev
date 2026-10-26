@@ -193,3 +193,100 @@ Damit wir keine funktionierenden Trainerabläufe versehentlich einschränken und
 6. **Vereinskontext:** Welche Vereinsdaten und E-Mail-Adressen soll ein Vereinsadmin sehen dürfen, und welche Aktionen bleiben Superadmins vorbehalten?
 
 Bis diese Fragen fachlich geklärt sind, wird keine breite Änderung an RLS-Policies vorgenommen. Sicherheitsrelevante Inkonsistenzen wie die DELETE-Teamkonsistenz bei `matchday_attendance` und die Trainerteilnahme-Policies werden unabhängig davon gezielt technisch untersucht.
+
+
+## 12. Frontend-Abgleich – tatsächlicher DEV-Branch
+
+**Geprüfte Frontenddatei:** `index.html` im Branch `feature/ap02-club-frontend-dev`  
+**Git-Blob SHA:** `64190e8dd269b61948707dc2f3d1b89fefabb8ed`  
+**Geprüfte Datenbank:** Supabase DEV, read-only  
+**Wichtig:** Dieser Abschnitt beschreibt den geprüften Branch-Stand. Es wurde keine Datei geändert oder deployed.
+
+### 12.1 Vereinsverwaltung: Frontend-RPCs passen grundsätzlich zur DB
+
+Frontend-Aufrufe:
+- `get_club_members_v2(p_club_id)`
+- `get_club_players(p_club_id)`
+- `admin_add_club_member_by_email(p_club_id,p_email,p_role)`
+- `admin_set_club_member_role(p_club_id,p_user_id,p_role)`
+- `admin_remove_club_member(p_club_id,p_user_id)`
+
+Der UI-Zugriff wird über `canManageClub` und `currentClubId` begrenzt. Die RPCs prüfen serverseitig ebenfalls `is_club_admin(p_club_id)), setzen feste Suchpfade und validieren Rolle/Mitgliedschaft. Das ist eine sinnvolle doppelte Grenze: UI-Steuerung für die Bedienung und Datenbankprüfung für Sicherheit.
+
+**Verbleibende Grenzen:** Die negativen Tests für fremde Vereins-ID und letzten Vereinsadmin bleiben gemäß AP02-T08/T09 offen. Ein Superadmin kann laut Funktion als Vereinsadmin autorisiert werden; das entspricht dem dokumentierten Plattformmodell.
+
+### 12.2 Teamrollen: RPCs mit Serverprüfung; UI-Last-Admin-Schutz ist nur Zusatz
+
+Frontend verwendet `get_team_trainers_v2`, `admin_add_team_role` und `admin_remove_team_role`. Die Teamrollenliste wird nur im Admin-Zweig geladen. Die UI verhindert außerdem, dass der aktuell angemeldete Nutzer über `removeTrainer` selbst entfernt wird, und prüft den letzten Admin lokal.
+
+Die Datenbank prüft zusätzlich:
+- aufrufender Nutzer ist Teamadmin,
+- Rolle ist `admin` oder `trainer`,
+- Zielkonto existiert,
+- letzter Teamadmin kann nicht entfernt werden.
+
+Damit ist der Schutz nicht allein von der Oberfläche abhängig.
+
+**P1 – Invariantenprüfung offen:** `admin_add_team_role` prüft aktuell nicht ausdrücklich, ob das Zielkonto bereits Mitglied des Vereins ist, dem die Mannschaft zugeordnet ist. Die aktuelle DEV-Datenprüfung fand keine Teamrolle ohne passende Vereinsmitgliedschaft. Das ist deshalb derzeit kein nachgewiesener Datenfehler, aber eine mögliche Lücke im serverseitig erzwungenen Ein-Verein-pro-Nutzer-Modell. Vor einer Änderung muss der Einladungspfad `invite-trainer` vollständig geprüft werden, da er Rollen/Mitgliedschaften orchestrieren kann.
+
+### 12.3 Kritischer Befund: Trainer-Anwesenheit kann für andere Trainer geschrieben werden
+
+Frontend schreibt direkt über Supabase:
+- `training_trainers.upsert({training_id,user_id,present})`
+- `matchday_trainers.upsert({matchday_id,user_id,present})`
+
+Die aktuellen RLS-Policies für INSERT/UPDATE/DELETE prüfen, dass der **aufrufende Nutzer** Mitglied der betroffenen Mannschaft ist. Die Bedingungen binden die Zeile jedoch nicht an `auth.uid()` als Ziel-`user_id`. Daher können grundsätzlich auch andere Trainerzeilen derselben Mannschaft verändert werden, sofern die Policy-Bedingung greift.
+
+Das Frontend zeigt diese Steuerung in den Traineranwesenheitslisten; es gibt in diesen Funktionen keine zusätzliche Adminprüfung. Ob dies fachlich gewollt ist, muss entschieden werden. Wenn Trainer ausschließlich ihre eigene Teilnahme pflegen sollen, müssen Policy und UI entsprechend enger gefasst werden. Wenn Teammitglieder bewusst alle Traineranwesenheiten pflegen dürfen, sollte dies ausdrücklich als Produktregel dokumentiert und negativ getestet werden.
+
+**Status:** konkreter Ist-Befund aus Frontend und RLS; kein produktiver Angriffstest durchgeführt.
+
+### 12.4 Kritischer Befund: Frontend-Admin-Guards ersetzen keine DB-Berechtigung
+
+Die Hilfsfunktion `adminGuard()` prüft lediglich den lokalen Frontendwert `role==='admin'`. `memberGuard()` prüft nur, ob Nutzer und Team gesetzt sind. Diese Guards verbessern die Bedienung, sind aber kein Sicherheitsmechanismus gegen direkte REST-/RPC-Aufrufe.
+
+Im Frontend werden viele Tabellen direkt angesprochen, darunter:
+- `players`, `positions`, `player_positions`
+- `trainings`, `training_series`, `training_players`, `training_trainers`, `training_responses`, `attendance`
+- `matchdays`, `matchday_players`, `matchday_trainers`, `matchday_attendance`
+- `matchday_recommendation_runs` und zugehörige Spielerzeilen
+
+Die RLS-Policies erlauben Teammitgliedern bei mehreren dieser Tabellen Schreiboperationen, einschließlich INSERT/UPDATE/DELETE, unabhängig davon, ob die Oberfläche eine Aktion nur Admins zeigt. Das ist kein automatischer Beweis für einen Fehler, aber ein wesentlicher Rollenabgleich: Die DB muss genau die fachlich gewünschte Grenze erzwingen, weil ein Nutzer die Frontend-Guards umgehen kann.
+
+Besonders zu prüfen sind:
+1. Trainings und Trainingsserien: RLS erlaubt aktuell Teammitgliedern grundlegende Schreiboperationen; die UI verwendet an einigen Stellen `adminGuard()`, an anderen direkte Schreibzugriffe.
+2. Spieltage: aktuelle RLS-Policies erlauben Teammitgliedern INSERT/UPDATE/DELETE; die UI zeigt einzelne Aktionen rollenabhängig.
+3. Spieler: INSERT/UPDATE ist laut RLS Teammitgliedern erlaubt, DELETE nur Teamadmins; die UI schützt das Entfernen aus dem aktiven Kader zusätzlich mit `adminGuard()`.
+4. Backup-Import: UI verlangt `adminGuard()`, führt danach aber zahlreiche direkte Tabellenoperationen aus. Die Berechtigung muss auf DB-Ebene denselben Umfang abdecken, falls ein Trainer den REST-Aufruf direkt versucht.
+
+**Empfehlung:** Vor Änderungen eine konkrete Sollmatrix festlegen und jede Tabellenoperation mit dieser Matrix vergleichen. Keine pauschale Verschärfung, die bisher erlaubte Trainerabläufe unabsichtlich zerstört.
+
+### 12.5 Matchday-Anwesenheit: DELETE-Policy ist breiter als INSERT/UPDATE
+
+Das Frontend liest und schreibt `matchday_attendance` direkt. INSERT und UPDATE prüfen Spieler-Team-Konsistenz; DELETE prüft aktuell nur die Teammitgliedschaft über den Spieltag. Die UI löscht einzelne Anwesenheitszeilen nicht im normalen Ablauf, aber Backup-/Restore- und andere Datenoperationen können DELETE nutzen.
+
+**Status:** technische Inkonsistenz bestätigt; konkrete Auswirkung hängt vom erreichbaren API-Aufruf und den Fremdschlüsselbeziehungen ab. Gezielt mit einem negativen RLS-Test prüfen und danach ggf. Policy angleichen.
+
+### 12.6 Vereinsmitglieder- und Teamrollen-Frontend: keine direkten Rollenänderungen per Tabellenzugriff gefunden
+
+Die geprüften UI-Aktionen für Vereinsrollen und Teamrollen verwenden die oben genannten RPCs. Die Frontenddatei liest `team_member_roles` direkt zur Ermittlung eigener Rollen, nimmt aber die eigentlichen Rollenänderungen über die RPCs vor. Das ist der richtige Grundansatz. Die RLS-Policy von `team_member_roles` erlaubt SELECT für eigene Rollen oder Teamadmins; direkte Schreib-Policies sind in der aktuellen Policy-Liste nicht vorhanden.
+
+### 12.7 Zusammenfassung des Frontend-Abgleichs
+
+| Bereich | Ergebnis | Nächster Schritt |
+|---|---|---|
+| Vereinsverwaltung-RPCs | UI und DB-Prüfung stimmen im Grundsatz überein | T08/T09 mit sicherem Testaufbau nachholen |
+| Teamrollen-RPCs | Serverseitige Autorisierung und letzter Teamadmin-Schutz vorhanden | Zielmitgliedschaft im Verein prüfen; Einladungspfad untersuchen |
+| Traineranwesenheit | Policies prüfen Mitgliedschaft des Aufrufers, nicht dessen Ziel-`user_id` | Fachliche Regel festlegen; bei Bedarf RLS/UI enger fassen |
+| Trainings/Serien/Spieltage | UI-Guards und DB-Schreibrechte sind nicht durchgängig deckungsgleich | Sollmatrix vor Änderungen; direkte API-Tests |
+| Spieltags-Anwesenheit DELETE | Spieler-Team-Konsistenz fehlt in der DELETE-Policy | gezielter negativer Test, dann ggf. korrigieren |
+| Backup/Restore | UI-Admin-Guard; viele direkte Tabellenoperationen | Sicherstellen, dass RLS alle Schreibrechte wirklich begrenzt |
+| Konto löschen | kein `delete_my_account`-Aufruf in der geprüften `index.html` gefunden | separaten Auth-/Edge-Function-Pfad prüfen |
+
+## 13. Konkrete Reihenfolge für die nächste Prüfphase
+
+1. Fachlich festlegen: Dürfen Trainer Trainings, Serien und Spieltage anlegen, ändern und löschen? Dürfen sie Spieler-Stammdaten ändern? Dürfen sie Anwesenheit anderer Trainer pflegen?
+2. Den Edge-Function-Code `invite-trainer` und alle aufgerufenen RPCs prüfen, um sicherzustellen, dass Einladungen Team- und Vereinsmitgliedschaften konsistent herstellen.
+3. Nicht-destruktive negative Tests planen: angemeldeter Trainer versucht Admin-Aktion direkt über REST; fremde Trainer-`user_id` in Anwesenheitszeile; Spieler aus anderem Team in Matchday-Anwesenheit; direkte RPC-Aufrufe mit fremder Team-/Vereins-ID.
+4. Erst nach bestätigtem Befund und festgelegter Sollmatrix gezielte DEV-Policy-/RPC-Korrekturen als separate Migration umsetzen und testen.
+5. Keine Änderung an PROD und kein PR-Merge ohne ausdrückliche Freigabe.
