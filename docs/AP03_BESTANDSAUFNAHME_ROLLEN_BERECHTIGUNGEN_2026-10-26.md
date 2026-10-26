@@ -518,3 +518,40 @@ AP03 ist **implementiert und teilweise verifiziert, aber noch nicht vollständig
 - **Umfang:** keine pauschalen Rechteänderungen, keine UI-Restrukturierung, kein PROD-Deploy und kein Merge.
 
 AP03 bleibt **implementiert und teilweise verifiziert, nicht vollständig sicherheitsabgenommen**. Die vorgenannten offenen Prüfungen sind ausdrücklich dokumentiert.
+
+
+## 8. Einzelbewertung der 21 SECURITY DEFINER-Funktionen (26.10.2026)
+
+Prüfgrundlage: aktuelle DEV-Funktionsdefinitionen, ACLs und Supabase Security Advisor. Dies ist eine Code-/Berechtigungsprüfung, kein vollständiger Penetrationstest. Die 21 Funktionen sind im Schema `public` für `authenticated` ausführbar. Der Aufruf ist bei mehreren Funktionen absichtlich erforderlich; deshalb wurden keine Rechte pauschal entzogen.
+
+| Funktion | Bewertung der internen Prüfung | Einschätzung EXECUTE für authenticated |
+|---|---|---|
+| `admin_add_club_member(uuid,uuid,text)` | Prüft Anmeldung, Vereinsadmin/Superadmin, erlaubte Vereinsrolle, Verein und Zielkonto; blockiert Mitgliedschaft in anderem Verein. | Erforderlich für Vereinsverwaltung; behalten, weitere Negativtests offen. |
+| `admin_add_club_member_by_email(uuid,text,text)` | Prüft Anmeldung, Vereinsadmin, Rolle und E-Mail; delegiert an geprüfte `admin_add_club_member`. | Erforderlich für Verwaltungsablauf; behalten. |
+| `admin_add_team_role(uuid,uuid,text)` | Prüft Teamadmin, erlaubte Teamrolle, Zielkonto, Teamexistenz und Vereinszugehörigkeit; schreibt Legacy- und normalisierte Rollentabelle. | Erforderlich für Teamrollenverwaltung; behalten. Cross-Club-Test offen. |
+| `admin_create_team(uuid,text,integer)` | Prüft Anmeldung/Vereinsadmin, Namen, Kadergröße und Verein; macht Ersteller zum Teamadmin. | Erforderlich für Vereinsverwaltung; behalten. |
+| `admin_remove_club_member(uuid,uuid)` | Prüft Vereinsadmin, Mitgliedschaft, fehlende Teamrollen und schützt letzten Vereinsadmin; sperrt Vereinszeile gegen parallele Änderungen. | Erforderlich; behalten. Letzter-Admin-Integrationstest offen. |
+| `admin_remove_team_role(uuid,uuid,text)` | Prüft Teamadmin und erlaubte Rolle; sperrt Teamzeile und schützt letzten Teamadmin. | Erforderlich; behalten. Letzter-Admin-Test offen. |
+| `admin_set_club_member_role(uuid,uuid,text)` | Prüft Vereinsadmin, erlaubte Rolle, Vereinsmitgliedschaft; schützt letzten Vereinsadmin und sperrt Vereinszeile. | Erforderlich; behalten. Praktischer Negativtest offen. |
+| `admin_set_trainer_label(uuid,text,text)` | Prüft Teamadmin, nichtleeres Label, vorhandenes Konto und Teamrolle. | Erforderlich für Teamverwaltung; behalten. |
+| `get_club_members(uuid)` | Prüft Vereinsadmin vor Rückgabe von E-Mail-Adressen und Teamrollen für den angegebenen Verein. | Erforderlich für Mitgliederverwaltung; behalten. |
+| `get_club_members_v2(uuid)` | Prüft Vereinsadmin vor Rückgabe von Mitglieds- und Teamrolleninformationen. | Erforderlich für aktuelle Mitgliederansicht; behalten. |
+| `get_club_players(uuid)` | Prüft Vereinsadmin und begrenzt Spielerabfrage auf Mannschaften dieses Vereins. | Erforderlich für Vereinsübersicht; behalten. |
+| `get_team_trainers_v2(uuid)` | Prüft Teamadmin vor Rückgabe von Teamrollen und E-Mail-Adressen. | Erforderlich für Teamverwaltung; behalten. |
+| `is_club_admin(uuid)` | Nutzt `auth.uid()`; prüft Superadmin oder Clubmitgliedschaft plus Vereinsadminrolle. | Als Hilfsfunktion für RLS/RPC nötig; behalten. Kann als boolesche Abfrage Vereinsrollenstatus offenlegen, aber nur für den angegebenen Verein. |
+| `is_club_member(uuid)` | Nutzt `auth.uid()` und prüft nur eigene Mitgliedschaft im angegebenen Verein. | Hilfsfunktion für Policies; behalten. |
+| `is_super_admin()` | Nutzt `auth.uid()` und prüft die globale Rolle des angemeldeten Kontos. | Hilfsfunktion für Policies/RPC; behalten. |
+| `is_team_admin(uuid)` | Nutzt `auth.uid()` und prüft eigene Adminrolle im angegebenen Team. | Hilfsfunktion für Policies/RPC; behalten. |
+| `is_team_admin(uuid,uuid)` | Prüft Adminrolle für eine beliebige übergebene Benutzer-ID und Team-ID, ohne die übergebene Benutzer-ID auf `auth.uid()` zu begrenzen. | **Gezielt prüfen:** liefert authentifizierten Nutzern einen Rollen-Wahrheitswert für fremde IDs. Vermutlich interne Hilfsfunktion; nicht ohne Abhängigkeitsanalyse entziehen, aber aus öffentlicher RPC-Oberfläche entfernen/privatisieren, falls kein Clientaufruf nötig. |
+| `is_team_member(uuid)` | Nutzt `auth.uid()` und prüft eigene Mitgliedschaft im angegebenen Team. | Hilfsfunktion für RLS/RPC; behalten. |
+| `is_team_member(uuid,uuid)` | Prüft Mitgliedschaft für eine beliebige Benutzer-ID und Team-ID, ohne Selbstbindung an `auth.uid()`. | **Gezielt prüfen:** kann Mitgliedschaftsstatus fremder IDs offenlegen. Wahrscheinlich interne Hilfsfunktion; Client-Notwendigkeit und RLS-Abhängigkeiten prüfen, ggf. aus öffentlicher RPC-Oberfläche entfernen/privatisieren. |
+| `log_team_role_change()` | Triggerfunktion protokolliert Rollenänderung anhand von `NEW/OLD` und `auth.uid()`; kein normaler RPC-Parameter. | Als Triggerfunktion behalten; nicht direkt als API gedacht. ACL sollte nur nötige Trigger-/Owner-Ausführung zulassen. Advisor-Eintrag ist hier wahrscheinlich ein False Positive für direkten API-Aufruf, trotzdem Exposure/ACL separat kontrollieren. |
+| `save_player_with_positions(...)` | Prüft Anmeldung, Pflichtname, Level/Fuß/Geburtsjahr, eigene Teammitgliedschaft und dass Positions-IDs zum selben Team gehören; Update sperrt Spielerzeile und blockiert Teamwechsel. | Erforderlich für atomaren Frontend-Speichervorgang; behalten. Cross-Team-Negativtest offen. |
+
+### Querschnittsergebnis
+- Bei den Verwaltungs- und Datenfunktionen sind relevante interne Autorisierungsprüfungen vorhanden; die Bewertung beruht auf den aktuell ausgelesenen Funktionsdefinitionen.
+- Zwei überladene Hilfsfunktionen (`is_team_admin(uuid,uuid)`, `is_team_member(uuid,uuid)`) akzeptieren eine beliebige Benutzer-ID und geben Rollen-/Mitgliedschaftsstatus zurück. Das ist der deutlichste konkrete Härtungskandidat: prüfen, ob sie nur intern gebraucht werden, und bei fehlendem legitimen Clientbedarf aus dem exponierten API-Schema entfernen oder die EXECUTE-Rechte so gestalten, dass RLS-/RPC-Abhängigkeiten erhalten bleiben.
+- Die übrigen 19 Funktionen haben entweder eigene Identitäts-/Rollenprüfungen, sind Authentifizierungs-Hilfsfunktionen, oder werden als Triggerfunktion verwendet. Das begründet keine pauschale Freigabe: negative Autorisierungstests fehlen teilweise.
+- Alle 21 Einträge sind aktuell für `authenticated` ausführbar. Der Supabase-Advisor-Hinweis bleibt bestehen, bis die Funktionen aus dem exponierten Schema/EXECUTE-Pfad entfernt werden oder der Advisor für diese Architektur bewusst als erwarteter Hinweis dokumentiert wird.
+- Keine Berechtigungen wurden in diesem Schritt geändert. Nächster sinnvoller Schritt: Abhängigkeiten der beiden Funktionen mit beliebiger Benutzer-ID (RLS-Policies, andere Funktionen und Frontend-Aufrufe) ermitteln; danach eine eng begrenzte DEV-Migration planen.
+
