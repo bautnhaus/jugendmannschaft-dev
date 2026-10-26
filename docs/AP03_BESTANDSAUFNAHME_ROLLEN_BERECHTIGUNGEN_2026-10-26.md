@@ -334,3 +334,15 @@ Die aktuelle RLS erlaubt Teammitgliedern INSERT und UPDATE von `players`, währe
 
 ### Aktueller Stand
 Nur read-only geprüft und dokumentiert. Keine RLS-Policy, RPC, Edge Function oder Frontenddatei wurde geändert. DEV-Daten und PROD sind unverändert.
+
+
+### 15.1 Fachliche Ergänzung – Spieler-Stammdaten bestätigt
+
+Am 26.10.2026 wurde zusätzlich bestätigt:
+
+- Trainer dürfen innerhalb ihrer eigenen Mannschaft Spieler neu anlegen und vorhandene Spieler-Stammdaten bearbeiten.
+- Dies umfasst insbesondere Name, Geburtsjahr, bevorzugten Fuß, Positionen, Level und weitere im Frontend gepflegte Spielerdaten.
+- Die Berechtigung gilt ausschließlich für Spieler der eigenen Mannschaft. Ein Zugriff auf Spieler anderer Mannschaften darf nicht möglich sein.
+- Das Entfernen aus dem aktiven Kader und die Reaktivierung bleiben gemäß aktueller Oberfläche Mannschaftsadmins vorbehalten.
+
+Damit ist das Schreiben von Spieler-Stammdaten durch Trainer eine **beabsichtigte Berechtigung**, keine zu schließende Lücke. Die RLS-Prüfung muss weiterhin sicherstellen, dass `team_id` nicht auf eine fremde Mannschaft gesetzt oder bei einem Update auf eine fremde Mannschaft umgestellt werden kann. Die bestehende `players`-INSERT-/UPDATE-Policy prüft `is_team_member(team_id)`; ein gezielter negativer Test auf teamübergreifende Änderungen bleibt Teil der technischen Validierung.
