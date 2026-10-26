@@ -5,11 +5,13 @@
 **Arbeitsbranch:** `feature/ap02-club-frontend-dev`  
 **Release-Status:** Nicht für PROD freigegeben. PR #2 bleibt Draft und wird nicht gemergt.
 
-## 1. Ziel und Status von AP02
+## 1. Ziel und Abschlussstatus von AP02
 
 Die Vereinsverwaltung ermöglicht berechtigten Vereinsadmins die Einsicht in Vereinsmitglieder und Spieler, die Verwaltung von Vereinsrollen sowie das Entfernen von Mitgliedern unter Einhaltung der Schutzregeln.
 
 **Produktentscheidung:** Ein Nutzer kann aktuell nur Mitglied in einem Verein sein. Mehrfachmitgliedschaften werden nicht umgesetzt und sind kein Bestandteil von AP02.
+
+**Abschlussentscheidung:** AP02 wird für den aktuellen DEV-Umfang mit dokumentierten Testeinschränkungen abgeschlossen. Die offenen Tests AP02-T08 bis AP02-T10 werden nicht als bestanden gewertet und sind vor einer weitergehenden Freigabe gezielt nachzuholen. Dieser Abschluss ist keine PROD-Freigabe.
 
 ## 2. Manuelle Tests – Ergebnis
 
@@ -55,29 +57,29 @@ Daher wird **keine vorsorgliche Datenmodellmigration** zur Unterstützung von Me
 
 Globale Superadmins bleiben ein ausdrücklich vorgesehener Sonderfall: `is_club_admin` gibt für sie vereinsübergreifend true zurück. Die UI verlangt dennoch eine explizite Vereinsauswahl.
 
-## 5. Noch offene Tests
+## 5. Offene Tests / bekannte Einschränkungen
 
-| ID | Test | Warum offen / nächster Schritt |
+| ID | Test | Status und nächster Schritt |
 |---|---|---|
-| AP02-T08 | Zugriff eines Vereinsadmins auf einen fremden Verein | In DEV existiert aktuell nur ein Verein. Ein praktischer Isolationstest ist daher noch nicht möglich. Die Ein-Verein-pro-Nutzer-Regel ist durch den Primärschlüssel von `club_members` und die Prüfung in `admin_add_club_member` abgesichert; später mit einem sicheren zweiten Testverein erneut prüfen. |
-| AP02-T09 | Letzten Vereinsadmin herabstufen/entfernen | **Nicht praktisch testbar über die aktuelle Oberfläche:** Der angemeldete Vereinsadmin bekommt keine Funktion angeboten, um die eigene Vereinsrolle zu ändern. Es wurde deshalb kein riskanter Umweg über Datenbankänderungen oder das Entfernen anderer Admins versucht. Die Schutzlogik wurde im Datenbankcode geprüft; ein sicherer Integrationstest mit einem vorbereiteten Testaufbau bleibt offen. |
-| AP02-T10 | Mitglied ohne Mannschaftsrollen entfernen | Noch nicht als separater erfolgreicher Löschfall bestätigt. Nur mit ausdrücklich entbehrlichem Testkonto und nach Prüfung der Auswirkungen testen. |
+| AP02-T08 | Zugriff eines Vereinsadmins auf einen fremden Verein | **Offen – aktuell nicht durchführbar.** In DEV existiert nur ein Verein. Später mit einem sicher vorbereiteten zweiten Testverein prüfen. |
+| AP02-T09 | Letzten Vereinsadmin herabstufen/entfernen | **Offen – nicht praktisch getestet.** Die Oberfläche bietet dem angemeldeten Vereinsadmin keine Funktion, die eigene Vereinsrolle zu ändern. Es wurde kein riskanter Umweg über direkte Datenbankänderungen oder das Entfernen anderer Admins versucht. Die Schutzlogik wurde im Datenbankcode geprüft. Für einen Integrationstest ist ein sicherer Testaufbau nötig. |
+| AP02-T10 | Mitglied ohne Mannschaftsrollen erfolgreich entfernen | **Offen – nicht praktisch getestet.** Es gibt kein ausdrücklich entbehrliches Testkonto. Bestehende Mitglieder werden nicht allein zu Testzwecken entfernt. Der Test ist nach Einrichtung eines sicheren Testkontos nachzuholen. |
 
 ## 6. Bekannte DEV-Testbedingungen
 
 - In der DEV-Datenbank existiert zum Prüfzeitpunkt ein Verein: `AP02 – Testverein DEV`.
 - Das zugeordnete Team `Jugendmannschaft DEV` enthält 22 Spieler.
 - Ein erfolgreicher UI-Test ersetzt keinen vollständigen Sicherheitstest.
-- Die bereits abgestimmten UI/UX-Zielbilder bleiben verbindlich. Die aktuelle Phase priorisiert Funktions- und Berechtigungsprüfung; der UI-Abgleich ist weiterhin als späterer Umsetzungsschritt eingeplant.
+- Die bereits abgestimmten UI/UX-Zielbilder bleiben verbindlich. Der UI-Abgleich ist weiterhin als separater Umsetzungsschritt eingeplant.
 
-## 7. Nächste Schritte
+## 7. Abschluss und nächste Schritte
 
-1. Die noch gefahrlos möglichen AP02-Tests abschließen.
-2. Offene, aktuell nicht testbare Fälle transparent dokumentieren.
-3. AP02 abschließen, sobald die für den aktuellen Umfang erforderlichen Tests und Sicherheitsprüfungen erledigt sind.
-4. Danach gezielte AP03-Bestandsaufnahme durchführen: Rollenmatrix, Berechtigungsregeln, vorhandene Schutzmechanismen und verbleibende Lücken.
-5. Anschließend die Verwaltungsseiten mit dem abgestimmten Ziel-UI vergleichen und die UI/UX-Anpassungen planen.
+1. **AP02 für den aktuellen DEV-Umfang dokumentarisch abschließen**, mit den offenen Tests AP02-T08 bis AP02-T10 ausdrücklich als Einschränkungen.
+2. Keine Testmitglieder ohne ausdrückliche Freigabe entfernen und keine Schutzregeln durch direkte Datenbankänderungen umgehen.
+3. Danach gezielte AP03-Bestandsaufnahme durchführen: Rollenmatrix, Berechtigungsregeln, vorhandene Schutzmechanismen und verbleibende Lücken.
+4. Anschließend die Verwaltungsseiten mit dem abgestimmten Ziel-UI vergleichen und UI/UX-Anpassungen planen.
+5. Vor einer späteren Freigabe die offenen Integrationstests mit einem sicheren Testaufbau nachholen.
 
 ## 8. Release-/Branch-Schutz
 
-Dieses Protokoll dokumentiert ausschließlich den DEV-Arbeitsstand. Es ist keine PROD-Freigabe. PR #2 bleibt offen und Draft; es wird nicht gemergt.
+Dieses Protokoll dokumentiert ausschließlich den DEV-Arbeitsstand. Es ist keine PROD-Freigabe. PR #2 bleibt offen und Draft; es wird nicht gemergt. PROD bleibt unverändert.
