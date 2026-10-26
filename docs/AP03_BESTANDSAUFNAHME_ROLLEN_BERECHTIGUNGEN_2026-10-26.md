@@ -621,3 +621,29 @@ Folgende Grenzen bleiben ausdrücklich bestehen:
 Diese Punkte werden als **Restpunkte/Risikoakzeptanz** dokumentiert und blockieren nicht die Dokumentation der bereits umgesetzten DEV-Arbeiten. Sie dürfen jedoch nicht als bestandene Tests ausgegeben werden. Vor einer PROD-Übernahme ist eine separate Freigabe mit Migrationen, Frontend-Stand und Rückfallplan erforderlich.
 
 **Release-Sperre:** keine PROD-Änderung, kein Merge und keine Veröffentlichung durch diese Dokumentationsaktualisierung.
+
+
+## 11. Fortsetzung der AP03-Sicherheitsprüfung – 26.10.2026
+
+### 11.1 Triggerfunktion `log_team_role_change()`
+
+- Die Funktion ist eine `SECURITY DEFINER`-Triggerfunktion mit festem `search_path = pg_catalog, public`.
+- Zwei aktive Trigger binden sie an `team_member_roles`: `audit_team_role_insert` (AFTER INSERT) und `audit_team_role_delete` (AFTER DELETE).
+- Sie schreibt Rollenänderungen in `team_role_change_log`; sie ist kein regulärer Frontend-RPC.
+- In DEV wurde `EXECUTE` für `PUBLIC`, `anon` und `authenticated` entzogen. Der Funktionsbesitzer behält die notwendigen Rechte.
+- Nachkontrolle: `authenticated` und `anon` haben keine direkte EXECUTE-Berechtigung mehr; beide Trigger sind weiterhin registriert.
+- Ein kontrollierter Rollenlösch-Test prüfte, dass der Trigger innerhalb der Testtransaktion einen Audit-Eintrag erzeugte; anschließend wurde die Testtransaktion zurückgerollt. Die vorhandenen Rollen-/Auditdaten wurden nicht dauerhaft verändert.
+- Der Security Advisor meldet nun 18 statt 19 Hinweise zu für `authenticated` ausführbaren SECURITY DEFINER-Funktionen.
+
+### 11.2 Noch ausstehende Arbeiten
+
+1. Die verbleibenden 18 Advisor-Einträge weiter einzeln nach Zweck, Berechtigungsprüfung und tatsächlichem Frontend-/RLS-Aufrufpfad bewerten. Keine pauschalen Rechteentziehungen.
+2. Regressionsprüfungen der Verwaltungs-RPCs und Trigger nach den Berechtigungsänderungen fortsetzen.
+3. Die registrierten DEV-Migrationen mit den Dateien im Branch abgleichen. Bei nicht vorhandenen Migrationsdateien müssen diese reproduzierbar im Feature-Branch ergänzt werden.
+4. Nach Abschluss dieses Abgleichs dieses Dokument mit dem vollständigen Prüfstatus und den nicht testbaren Fällen aktualisieren.
+
+### 11.3 Aktuelle Grenzen
+
+- Der Cross-Club- und Cross-Team-Negativtest bleibt mangels zweitem Verein bzw. zweitem Team offen.
+- Die Supabase-Einstellung zum Schutz vor bekannten kompromittierten Passwörtern ist aufgrund der verfügbaren Tarifoptionen nicht aktivierbar; dies ist eine dokumentierte Plattform-/Tarifgrenze, kein Nachweis kompromittierter Konten.
+- Kein Merge, keine PROD-Migration und kein PROD-Deployment.
