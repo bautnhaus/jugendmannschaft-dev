@@ -476,3 +476,24 @@ Die zugehörigen SQL-Dateien liegen im Branch `feature/ap03-security-fixes` unte
 
 - [x] `save_player_with_positions` wurde zusätzlich als authentifizierter Trainer zum Anlegen eines neuen Spielers samt Position in einer Transaktion aufgerufen; danach wurde zurückgerollt. Die Nachabfrage bestätigte, dass der temporäre Testspieler nicht gespeichert wurde.
 - [x] Die beiden Migrationsdateien wurden auf die tatsächlich von Supabase registrierten Versionsnummern ausgerichtet: `20261026210356_ap03_security_fixes_v1_dev.sql` und `20261026210440_ap03_security_fixes_hardening_v1_dev.sql`. Damit stimmen Dateinamen und DEV-Migrationshistorie überein.
+
+
+## 19. AP03-Abschlussprüfung – Status zum 26.10.2026
+
+### Verifiziert
+- Die DEV-Migrationshistorie enthält `20261026210356 ap03_security_fixes_v1_dev` und `20261026210440 ap03_security_fixes_hardening_v1_dev`.
+- Die aktiven DEV-Policies für `player_positions` und `matchday_attendance` entsprechen den in Abschnitt 18 beschriebenen Korrekturen.
+- Die Bestandsabfrage findet derzeit keine Teamrollen, deren Nutzer keine Vereinsmitgliedschaft beim Verein der Mannschaft haben.
+- Die veröffentlichte `jugendmannschaft-dev:main/index.html` enthält den Aufruf `save_player_with_positions`.
+- Nutzerseitig bestätigt: Anmeldung/rollenabhängiger Einstieg bestanden; Spieler neu anlegen, bearbeiten und speichern nach Reload bestanden.
+- Nutzerseitig bestätigt: Rollenbearbeitung bietet nur „Vereinsmitglied“ und „Vereinsadmin“. Dies ist der Vereinsrollen-Dialog; Teamrollen werden getrennt verwaltet. Die Übersichtlichkeit der Verwaltungswege wird als separates UI-Folgepaket geführt.
+
+### Weiterhin offen – vor AP03-Abschluss entscheiden
+1. **Einladung / anderes Vereinskonto:** Codepfad prüft die Vereinsgrenze; negativer Integrationstest fehlt, da in DEV nur ein Verein vorhanden ist.
+2. **Cross-Team-Tests:** Direkte Positions- und Anwesenheitszugriffe mit IDs einer zweiten Mannschaft nicht praktisch getestet, da DEV nur eine Mannschaft hat.
+3. **Letzter Admin:** Serverseitiger Schutz wurde im Code geprüft; vollständiger isolierter Integrationstest steht aus.
+4. **Rollenänderungen und Invite-Flow:** Praktischer End-to-End-Test für neues Mitglied, Vereinsmitgliedschaft und Teamrolle nach dem aktuellen Deployment noch nicht dokumentiert.
+5. **Browser-Regression:** Nutzer hat die Kernabläufe für Spieler bestätigt; ein kompletter Regressionstest aller AP02/AP03-Verwaltungsabläufe steht aus.
+
+### Abschlussbewertung
+AP03 ist **implementiert und teilweise verifiziert, aber noch nicht vollständig abgeschlossen**. Die verbliebenen Punkte betreffen vor allem fehlende isolierte Negativ-/Integrationstests, nicht bekannte reproduzierte Datenfehler. Keine weitere UI-Restrukturierung gehört zum AP03-Umfang. Das UI-Folgepaket bleibt separat vorgemerkt. Kein PROD-Deploy und kein Merge wurden durch diese Abschlussprüfung ausgelöst.
