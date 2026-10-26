@@ -153,3 +153,43 @@ Keine bestehenden Mitglieder zu Testzwecken entfernen und keine Schutzregeln per
 - Historische Befunde als historisch kennzeichnen; nur aktuelle Read-only-Prüfungen als aktuellen Befund bezeichnen.
 - Keine pauschale Rechteentziehung für `SECURITY DEFINER`-Funktionen.
 - Keine Testlöschung bestehender Nutzer/Mitglieder.
+
+
+## 10. Vorläufige Ist-Matrix der Mannschaftsrechte
+
+Diese Tabelle beschreibt den aktuell ausgelesenen RLS-Stand, **nicht** automatisch die gewünschte fachliche Soll-Berechtigung.
+
+| Datenbereich / Aktion | Aktuell laut RLS | Einordnung / noch zu klären |
+|---|---|---|
+| Spieler lesen | Teammitglied | Bestätigt als aktueller Ist-Stand |
+| Spieler erstellen / ändern | Teammitglied | Fachlich klären: Soll ein Trainer Spielerstammdaten ändern dürfen? |
+| Spieler löschen | Teamadmin | Aktuell Admin-only |
+| Positionen lesen | Teammitglied | Aktuell erlaubt |
+| Positionen erstellen / ändern / löschen | Teamadmin | Aktuell Admin-only; INSERT prüft Spieler-/Positions-Teamzugehörigkeit |
+| Trainings lesen / erstellen / ändern / löschen | Teammitglied | Fachlich klären, ob Trainer alle Trainingsaktionen ausführen dürfen |
+| Trainingsserien lesen / erstellen / ändern / löschen | Teammitglied | Fachlich klären; Lösch- und Serienfolgen berücksichtigen |
+| Anwesenheit Training | Teammitglied; INSERT/UPDATE/DELETE prüfen Trainings-/Spielerbezug | Aktueller Ist-Stand; Regressionstests erforderlich |
+| Trainingsrückmeldungen | Teammitglied; Zuordnung wird bei INSERT/UPDATE geprüft | Prüfen, ob Trainer beliebige Rückmeldungen ändern dürfen oder ob ein engerer Ablauf vorgesehen ist |
+| Spieltage lesen / erstellen / ändern / löschen | Teammitglied | Fachlich klären, ob Trainer alle Aktionen ausführen dürfen |
+| Spieltagskader `matchday_players` | Teammitglied; Spieler-/Spieltag-Teambezug wird geprüft | Aktuell erlaubt |
+| Spieltags-Anwesenheit `matchday_attendance` | Lesen/Schreiben Teammitglied; INSERT/UPDATE prüfen Spieler-Teambezug, DELETE prüft nur Teammitgliedschaft am Spieltag | Konsistenz beim DELETE gezielt prüfen |
+| Trainerteilnahme Training/Spieltag | Mitgliedschaft des Aufrufers wird geprüft | Prüfen, ob ein Trainer Teilnahmezeilen anderer Trainer bearbeiten dürfen soll |
+| Team-Mitgliedschaften `team_members` | Lesen Teammitglied; Hinzufügen/Ändern/Entfernen Teamadmin | Rollenänderungen nicht direkt über die Legacy-Rollenspalte verwalten |
+| Teamrollen `team_member_roles` | Lesen eigene Rollen oder durch Teamadmin; Änderung über abgesicherte RPCs | Last-Admin-Schutz und negative RPC-Tests weiter nachweisen |
+| Saisonverwaltung | Lesen Teammitglied; Schreiben Teamadmin | Aktuell Admin-only für Änderungen |
+| Vereinsmitglieder / Vereinsrollen | eigene Mitgliedschaft, Vereinsadmin oder Superadmin gemäß Policy/RPC | Cross-club- und Last-admin-Tests AP02-T08/T09 offen |
+| Teamrollen-Auditlog | Lesen Teamadmin | Schreibpfad erfolgt über Trigger/RPC; direkte Rechte weiter minimieren |
+| Profil | Nutzer kann eigenes Profil ändern; Teamadmins können Profile im Teamkontext lesen | Vereinsadmin-Sicht auf Profile/E-Mail gesondert prüfen, falls benötigt |
+
+## 11. Fachliche Entscheidungen, die vor Policy-Änderungen gebraucht werden
+
+Damit wir keine funktionierenden Trainerabläufe versehentlich einschränken und auch keine zu weit gefassten Rechte ungeprüft lassen, sind diese Entscheidungen vor dem Umsetzen der Soll-Matrix zu treffen:
+
+1. **Spielerstammdaten:** Dürfen Trainer Spieler anlegen und bearbeiten oder nur Teamadmins?
+2. **Training und Trainingsserien:** Dürfen Trainer Trainings/Serien anlegen, ändern, absagen und löschen? Sind einzelne Aktionen Admin-only?
+3. **Spieltage und Kader:** Dürfen Trainer Spieltage anlegen, ändern und löschen sowie Kader/Anwesenheit bearbeiten?
+4. **Trainerteilnahme:** Darf jedes Teammitglied die Teilnahme anderer Trainer pflegen, oder darf ein Trainer nur die eigene Teilnahme ändern?
+5. **Rückmeldungen:** Dürfen Trainer beliebige Rückmeldungen ändern, oder soll die Antwort später aus einem eigenen Spieler-/Elternkonto kommen?
+6. **Vereinskontext:** Welche Vereinsdaten und E-Mail-Adressen soll ein Vereinsadmin sehen dürfen, und welche Aktionen bleiben Superadmins vorbehalten?
+
+Bis diese Fragen fachlich geklärt sind, wird keine breite Änderung an RLS-Policies vorgenommen. Sicherheitsrelevante Inkonsistenzen wie die DELETE-Teamkonsistenz bei `matchday_attendance` und die Trainerteilnahme-Policies werden unabhängig davon gezielt technisch untersucht.
