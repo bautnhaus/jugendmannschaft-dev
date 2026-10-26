@@ -421,3 +421,10 @@ Da `invite-trainer` diese Funktion verwendet und selbst keine Vereinszugehörigk
 ### 17.6 Grenzen dieser Prüfung
 
 Diese Ergebnisse stammen aus Definitionen der aktuellen RLS-Policies, RPCs, Constraints und Triggern sowie dem geprüften Frontend-/Edge-Function-Code. Es wurden keine schädlichen oder destruktiven API-Aufrufe durchgeführt. Ein realer Cross-Team- oder Cross-Club-Exploit ist damit nicht nachgewiesen. Die genannten Korrekturen sind Empfehlungen für die nächste DEV-Änderungsrunde, keine bereits umgesetzten Änderungen.
+
+
+### 17.7 Ergänzende Bestätigung: Archivierung/Reaktivierung ist serverseitig geschützt
+
+Die Triggerfunktion `protect_player_active_status()` wurde direkt aus DEV ausgelesen. Sie weist eine Änderung von `players.active` zurück, wenn der Aufrufer kein Teamadmin der bisherigen Mannschaft ist. Damit ist die Admin-only-Regel für Archivierung/Reaktivierung nicht nur eine UI-Schranke, sondern zusätzlich in der Datenbank verankert.
+
+Die Funktion `cleanup_matchday_recommendations_before_player_delete()` löscht vor einem physischen Spieler-DELETE zugehörige Empfehlungsläufe. Im normalen Frontend wird ein Spieler jedoch archiviert statt physisch gelöscht. Der Trigger ist daher ein Aufräumschutz für direkte/andere Löschpfade, nicht der primäre Archivierungsmechanismus.
