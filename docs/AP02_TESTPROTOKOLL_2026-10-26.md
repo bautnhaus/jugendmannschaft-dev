@@ -45,7 +45,7 @@ Feststellungen:
 - `club_members` hat `user_id` als Primärschlüssel. Damit kann ein Nutzer in der aktuellen Datenstruktur nur einmal als Vereinsmitglied eingetragen sein. `admin_add_club_member` prüft zusätzlich, ob der Nutzer bereits einem anderen Verein zugeordnet ist.
 - Die globale Speicherung der Vereinsrolle in `club_member_roles` ist in Verbindung mit dieser Ein-Verein-pro-Nutzer-Regel der aktuelle Datenmodellansatz. Mehrfachmitgliedschaften und vereinsbezogene Rollen je Nutzer sind ausdrücklich nicht Teil des jetzigen Umfangs.
 
-**Nicht praktisch getestet:** Der Schutz des letzten Vereinsadmins wurde nicht durch einen riskanten manuellen Änderungsversuch ausgelöst. Ein Test darf nicht dazu führen, dass der Verein ohne Admin verbleibt.
+**Wichtige Abgrenzung:** Die Schutzlogik wurde im Datenbankcode geprüft. Das ist kein Ersatz für einen praktischen Integrationstest der tatsächlichen UI-/RPC-Verbindung.
 
 ## 4. Einordnung der Rollenmodellierung
 
@@ -60,7 +60,7 @@ Globale Superadmins bleiben ein ausdrücklich vorgesehener Sonderfall: `is_club_
 | ID | Test | Warum offen / nächster Schritt |
 |---|---|---|
 | AP02-T08 | Zugriff eines Vereinsadmins auf einen fremden Verein | In DEV existiert aktuell nur ein Verein. Ein praktischer Isolationstest ist daher noch nicht möglich. Die Ein-Verein-pro-Nutzer-Regel ist durch den Primärschlüssel von `club_members` und die Prüfung in `admin_add_club_member` abgesichert; später mit einem sicheren zweiten Testverein erneut prüfen. |
-| AP02-T09 | Letzten Vereinsadmin herabstufen/entfernen | Nicht destruktiv praktisch getestet. Sicheren Testaufbau mit mindestens zwei Vereinsadmins vorbereiten. |
+| AP02-T09 | Letzten Vereinsadmin herabstufen/entfernen | **Nicht praktisch testbar über die aktuelle Oberfläche:** Der angemeldete Vereinsadmin bekommt keine Funktion angeboten, um die eigene Vereinsrolle zu ändern. Es wurde deshalb kein riskanter Umweg über Datenbankänderungen oder das Entfernen anderer Admins versucht. Die Schutzlogik wurde im Datenbankcode geprüft; ein sicherer Integrationstest mit einem vorbereiteten Testaufbau bleibt offen. |
 | AP02-T10 | Mitglied ohne Mannschaftsrollen entfernen | Noch nicht als separater erfolgreicher Löschfall bestätigt. Nur mit ausdrücklich entbehrlichem Testkonto und nach Prüfung der Auswirkungen testen. |
 
 ## 6. Bekannte DEV-Testbedingungen
