@@ -555,3 +555,23 @@ Prüfgrundlage: aktuelle DEV-Funktionsdefinitionen, ACLs und Supabase Security A
 - Alle 21 Einträge sind aktuell für `authenticated` ausführbar. Der Supabase-Advisor-Hinweis bleibt bestehen, bis die Funktionen aus dem exponierten Schema/EXECUTE-Pfad entfernt werden oder der Advisor für diese Architektur bewusst als erwarteter Hinweis dokumentiert wird.
 - Keine Berechtigungen wurden in diesem Schritt geändert. Nächster sinnvoller Schritt: Abhängigkeiten der beiden Funktionen mit beliebiger Benutzer-ID (RLS-Policies, andere Funktionen und Frontend-Aufrufe) ermitteln; danach eine eng begrenzte DEV-Migration planen.
 
+
+
+## 9. Abhängigkeitsprüfung und begrenzte DEV-Härtung der Teamrollen-Hilfsfunktionen (26.10.2026)
+
+### Abhängigkeiten
+- Die einparametrigen Funktionen `is_team_admin(uuid)` und `is_team_member(uuid)` werden von mehreren RLS-Policies direkt verwendet und bleiben für `authenticated` ausführbar.
+- Die zweiparametrigen Überladungen `is_team_admin(uuid,uuid)` und `is_team_member(uuid,uuid)` werden von den geprüften SECURITY DEFINER-Verwaltungs-RPCs verwendet, darunter `admin_add_team_role` und `admin_set_trainer_label`. Die RLS-Policies verwenden direkt die einparametrigen Varianten.
+- Die zweiparametrigen Varianten akzeptieren beliebige Benutzer-IDs und geben einen Rollen-/Mitgliedschaftsstatus zurück. Ein direkter Aufruf durch normale angemeldete Clients ist nach den untersuchten Abhängigkeiten nicht erforderlich.
+
+### Umgesetzte DEV-Migration
+- `REVOKE EXECUTE ON FUNCTION public.is_team_admin(uuid, uuid) FROM PUBLIC, anon, authenticated;`
+- `REVOKE EXECUTE ON FUNCTION public.is_team_member(uuid, uuid) FROM PUBLIC, anon, authenticated;`
+- Die Migration wurde auf DEV angewendet. Eigentümer-/postgres-Ausführung bleibt möglich; die einparametrigen Varianten bleiben unverändert.
+- Nachprüfung bestätigte: beide zweiparametrigen Funktionen haben `anon_exec=false` und `authenticated_exec=false`; die einparametrigen Varianten bleiben für `authenticated` ausführbar.
+- Supabase Security Advisor zeigt nun 19 statt 21 Warnungen dieser Kategorie.
+
+### Status und Einschränkungen
+- Dies ist eine gezielte Reduktion unnötiger direkter RPC-Aufrufe, keine vollständige Bereinigung der SECURITY DEFINER-Warnungen.
+- Ein vollständiger Browser-Regressions-/Integrationstest für alle internen RPC-Aufrufe nach dem Entzug der EXECUTE-Rechte steht noch aus. Die Funktionsaufrufe innerhalb der SECURITY DEFINER-Funktionen sollten in einem isolierten Test noch verifiziert werden.
+- Keine PROD-Änderung und kein Merge.
