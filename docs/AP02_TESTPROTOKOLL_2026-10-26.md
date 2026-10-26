@@ -9,7 +9,7 @@
 
 Die Vereinsverwaltung ermöglicht berechtigten Vereinsadmins die Einsicht in Vereinsmitglieder und Spieler, die Verwaltung von Vereinsrollen sowie das Entfernen von Mitgliedern unter Einhaltung der Schutzregeln.
 
-**Status: Noch nicht abschließbar.** Die Kernabläufe wurden manuell erfolgreich getestet, aber bei der read-only Prüfung der Rollenmodellierung wurde ein sicherheitsrelevanter Punkt erkannt, der vor Abschluss geklärt und behoben werden muss.
+**Produktentscheidung:** Ein Nutzer kann aktuell nur Mitglied in einem Verein sein. Mehrfachmitgliedschaften werden nicht umgesetzt und sind kein Bestandteil von AP02.
 
 ## 2. Manuelle Tests – Ergebnis
 
@@ -31,7 +31,9 @@ Am 26.10.2026 wurden die Definitionen und Ausführungsrechte der folgenden DEV-D
 - `get_club_players`
 - `admin_set_club_member_role`
 - `admin_remove_club_member`
+- `admin_add_club_member`
 - `is_club_admin`
+- `is_club_member`
 
 Feststellungen:
 
@@ -40,22 +42,24 @@ Feststellungen:
 - Anonyme Benutzer haben keine EXECUTE-Berechtigung auf die geprüften Verwaltungsfunktionen; `authenticated` hat EXECUTE.
 - Rollenänderungen sind auf `member` und `club_admin` beschränkt.
 - Im Code sind Schutzregeln vorgesehen, die das Herabstufen bzw. Entfernen des letzten Vereinsadmins und das Entfernen von Mitgliedern mit Mannschaftsrollen verhindern sollen.
+- `club_members` hat `user_id` als Primärschlüssel. Damit kann ein Nutzer in der aktuellen Datenstruktur nur einmal als Vereinsmitglied eingetragen sein. `admin_add_club_member` prüft zusätzlich, ob der Nutzer bereits einem anderen Verein zugeordnet ist.
+- Die globale Speicherung der Vereinsrolle in `club_member_roles` ist in Verbindung mit dieser Ein-Verein-pro-Nutzer-Regel der aktuelle Datenmodellansatz. Mehrfachmitgliedschaften und vereinsbezogene Rollen je Nutzer sind ausdrücklich nicht Teil des jetzigen Umfangs.
 
 **Nicht praktisch getestet:** Der Schutz des letzten Vereinsadmins wurde nicht durch einen riskanten manuellen Änderungsversuch ausgelöst. Ein Test darf nicht dazu führen, dass der Verein ohne Admin verbleibt.
 
-## 4. Sicherheitsrelevanter offener Punkt – Vereinsrollen sind nicht vereinsbezogen
+## 4. Einordnung der Rollenmodellierung
 
-Die Tabelle `club_member_roles` enthält derzeit `user_id` und `role`, aber keinen `club_id`. Die Rollenvergabe ist damit global pro Benutzer gespeichert. Die Funktion `is_club_admin(p_club_id)` prüft zwar zusätzlich, ob der Benutzer Mitglied des angefragten Vereins ist, aber die Rolle `club_admin` selbst ist nicht an genau diesen Verein gebunden.
+Die Tabelle `club_member_roles` speichert `user_id` und `role`, ohne `club_id`. Für die aktuelle Produktentscheidung (ein Nutzer kann nur einem Verein angehören) ist das konsistent mit der bestehenden Struktur von `club_members`, deren Primärschlüssel `user_id` eine zweite Vereinsmitgliedschaft verhindert.
 
-**Risiko:** Wenn ein Benutzer Vereinsmitglied in mehreren Vereinen ist und in einem davon die Rolle `club_admin` erhält, kann diese globale Rolle dazu führen, dass er auch in weiteren Vereinen, in denen er Mitglied ist, als Vereinsadmin erkannt wird. Das ist anhand der aktuellen Tabellen- und Funktionsdefinitionen ein plausibles Sicherheitsrisiko. Mit nur einem Verein in DEV lässt es sich derzeit nicht per regulärem Mehrvereins-Test reproduzieren.
+Daher wird **keine vorsorgliche Datenmodellmigration** zur Unterstützung von Mehrfachmitgliedschaften vorgenommen. Sollte sich die Produktentscheidung später ändern, müssen Mitgliedschafts- und Rollenmodell gemeinsam neu bewertet werden.
 
-**Konsequenz:** AP02 wird noch nicht als abgeschlossen markiert. Vor dem Abschluss muss das Rollenmodell so angepasst oder anderweitig sicher abgegrenzt werden, dass Vereinsadmins nur im jeweils zugewiesenen Verein Verwaltungsrechte haben. Dabei müssen alle betroffenen Funktionen und bestehende Daten berücksichtigt werden; keine Schnelländerung ohne Bestandsaufnahme.
+Globale Superadmins bleiben ein ausdrücklich vorgesehener Sonderfall: `is_club_admin` gibt für sie vereinsübergreifend true zurück. Die UI verlangt dennoch eine explizite Vereinsauswahl.
 
 ## 5. Noch offene Tests
 
 | ID | Test | Warum offen / nächster Schritt |
 |---|---|---|
-| AP02-T08 | Zugriff eines Vereinsadmins auf einen fremden Verein | In DEV existiert aktuell nur ein Verein. Zuerst Rollenmodell korrigieren, danach mit sicherem zweiten Testverein oder isoliertem Testkontext prüfen. |
+| AP02-T08 | Zugriff eines Vereinsadmins auf einen fremden Verein | In DEV existiert aktuell nur ein Verein. Ein praktischer Isolationstest ist daher noch nicht möglich. Die Ein-Verein-pro-Nutzer-Regel ist durch den Primärschlüssel von `club_members` und die Prüfung in `admin_add_club_member` abgesichert; später mit einem sicheren zweiten Testverein erneut prüfen. |
 | AP02-T09 | Letzten Vereinsadmin herabstufen/entfernen | Nicht destruktiv praktisch getestet. Sicheren Testaufbau mit mindestens zwei Vereinsadmins vorbereiten. |
 | AP02-T10 | Mitglied ohne Mannschaftsrollen entfernen | Noch nicht als separater erfolgreicher Löschfall bestätigt. Nur mit ausdrücklich entbehrlichem Testkonto und nach Prüfung der Auswirkungen testen. |
 
@@ -64,17 +68,15 @@ Die Tabelle `club_member_roles` enthält derzeit `user_id` und `role`, aber kein
 - In der DEV-Datenbank existiert zum Prüfzeitpunkt ein Verein: `AP02 – Testverein DEV`.
 - Das zugeordnete Team `Jugendmannschaft DEV` enthält 22 Spieler.
 - Ein erfolgreicher UI-Test ersetzt keinen vollständigen Sicherheitstest.
-- Globale Superadmins werden durch `is_club_admin` derzeit für alle Vereins-IDs als berechtigt behandelt. Das entspricht der vorgesehenen Plattformadmin-Rolle; die UI verlangt weiterhin eine explizite Vereinsauswahl.
 - Die bereits abgestimmten UI/UX-Zielbilder bleiben verbindlich. Die aktuelle Phase priorisiert Funktions- und Berechtigungsprüfung; der UI-Abgleich ist weiterhin als späterer Umsetzungsschritt eingeplant.
 
 ## 7. Nächste Schritte
 
-1. Das Vereinsrollenmodell und alle betroffenen Funktionen gezielt untersuchen.
-2. Eine sichere, vereinsbezogene Berechtigungslogik planen und in DEV umsetzen; Datenmigration und bestehende Zuordnungen dabei berücksichtigen.
-3. Die AP02-Tests nach der Korrektur wiederholen, insbesondere Vereinsisolation und Schutz des letzten Admins.
-4. AP02 erst dann abschließen, wenn der Sicherheitsblocker behoben und die notwendigen Tests erfolgreich sind.
-5. Danach gezielte AP03-Bestandsaufnahme durchführen: Rollenmatrix, Berechtigungsregeln, vorhandene Schutzmechanismen und verbleibende Lücken.
-6. Anschließend die Verwaltungsseiten mit dem abgestimmten Ziel-UI vergleichen und die UI/UX-Anpassungen planen.
+1. Die noch gefahrlos möglichen AP02-Tests abschließen.
+2. Offene, aktuell nicht testbare Fälle transparent dokumentieren.
+3. AP02 abschließen, sobald die für den aktuellen Umfang erforderlichen Tests und Sicherheitsprüfungen erledigt sind.
+4. Danach gezielte AP03-Bestandsaufnahme durchführen: Rollenmatrix, Berechtigungsregeln, vorhandene Schutzmechanismen und verbleibende Lücken.
+5. Anschließend die Verwaltungsseiten mit dem abgestimmten Ziel-UI vergleichen und die UI/UX-Anpassungen planen.
 
 ## 8. Release-/Branch-Schutz
 
