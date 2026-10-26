@@ -647,3 +647,12 @@ Diese Punkte werden als **Restpunkte/Risikoakzeptanz** dokumentiert und blockier
 - Der Cross-Club- und Cross-Team-Negativtest bleibt mangels zweitem Verein bzw. zweitem Team offen.
 - Die Supabase-Einstellung zum Schutz vor bekannten kompromittierten Passwörtern ist aufgrund der verfügbaren Tarifoptionen nicht aktivierbar; dies ist eine dokumentierte Plattform-/Tarifgrenze, kein Nachweis kompromittierter Konten.
 - Kein Merge, keine PROD-Migration und kein PROD-Deployment.
+
+
+### 11.4 Migrationsabgleich – Zwischenergebnis
+
+- Die beiden Hauptmigrationen `20261026210356_ap03_security_fixes_v1_dev.sql` und `20261026210440_ap03_security_fixes_hardening_v1_dev.sql` sind im Branch vorhanden.
+- Die Migration zur Einschränkung der direkten EXECUTE-Rechte auf `log_team_role_change()` wurde neu als `20261026225811_ap03_restrict_log_team_role_change_execute_dev.sql` im Branch dokumentiert und stimmt mit dem registrierten DEV-Migrationsnamen überein.
+- Die Migration zur Einschränkung der zweiparametrigen Teamrollen-Hilfsfunktionen wurde als `20261026222403_ap03_restrict_internal_team_role_helpers_dev.sql` ergänzt.
+- Beim `set_updated_at()`-Hardening besteht eine historische Versionsabweichung: Die DEV-Migrationshistorie führt Version `20261026221728`, während bereits eine Datei mit Zeitstempel `20261026221800` im Branch lag. Eine Datei mit der registrierten Version `20261026221728` wurde ergänzt. Beide enthalten denselben idempotenten `ALTER FUNCTION ... SET search_path`-Befehl; die doppelte historische Datei ist als Bereinigungs-/Konsolidierungspunkt zu beachten, bevor ein vollständig neu aufgebautes Schema über diese Dateien reproduziert wird.
+- Dieser Abgleich ist damit verbessert, aber noch nicht als vollständige Reproduktion einer frischen Datenbank bewertet: Vor einer solchen Aussage müssen alle registrierten Migrationen gegen den Branchbestand und ihre Reihenfolge geprüft werden.
