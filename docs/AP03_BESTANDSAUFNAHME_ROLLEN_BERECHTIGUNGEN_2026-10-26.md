@@ -346,3 +346,24 @@ Am 26.10.2026 wurde zusätzlich bestätigt:
 - Das Entfernen aus dem aktiven Kader und die Reaktivierung bleiben gemäß aktueller Oberfläche Mannschaftsadmins vorbehalten.
 
 Damit ist das Schreiben von Spieler-Stammdaten durch Trainer eine **beabsichtigte Berechtigung**, keine zu schließende Lücke. Die RLS-Prüfung muss weiterhin sicherstellen, dass `team_id` nicht auf eine fremde Mannschaft gesetzt oder bei einem Update auf eine fremde Mannschaft umgestellt werden kann. Die bestehende `players`-INSERT-/UPDATE-Policy prüft `is_team_member(team_id)`; ein gezielter negativer Test auf teamübergreifende Änderungen bleibt Teil der technischen Validierung.
+
+
+## 16. Frontend-Handler gegen bestätigte Trainerrechte geprüft
+
+Ergänzender Check der tatsächlichen Handler in `index.html` (Git-Blob SHA `64190e8dd269b61948707dc2f3d1b89fefabb8ed`):
+
+- `saveNewPlayer` und `savePlayer` speichern Spielerstammdaten ohne `adminGuard()`. Das entspricht der bestätigten Soll-Regel für Trainer. Die Datenbank muss weiterhin Teamzugehörigkeit und Positionen auf dieselbe Mannschaft begrenzen.
+- `deleteTraining` löscht Zuordnungen und Training direkt ohne UI-Adminprüfung. Das entspricht der bestätigten Soll-Regel, dass Trainer Trainings verwalten und löschen dürfen; die RLS begrenzt die Aktion auf Teammitglieder des betreffenden Teams.
+- `saveTraining` legt Trainingstermine bzw. Serien an, ohne `adminGuard()`; dies entspricht der bestätigten Soll-Regel.
+- `deleteMatchday` löscht Kaderzuordnungen und Spieltag direkt ohne UI-Adminprüfung. Das entspricht der bestätigten Soll-Regel, dass Trainer Spieltage verwalten und löschen dürfen; die RLS begrenzt die Aktionen auf das Team des Spieltags.
+- `saveMatchdayRecommendation` ruft `save_matchday_recommendation` auf. Die Funktion prüft die Teammitgliedschaft des Aufrufers, doppelte/ungültige Spieler sowie die Teamzugehörigkeit und Aktivität aller empfohlenen Spieler. Sie ist keine `SECURITY DEFINER`-Funktion; die Tabellenoperationen laufen damit unter den Aufruferrechten und den Tabellen-RLS-Policies.
+
+### Status nach fachlicher Klärung
+
+Die Trainerrechte für Trainings, Trainingsserien, Spieltage, Anwesenheiten anderer Trainer derselben Mannschaft sowie Anlegen/Bearbeiten von Spielern sind im Wesentlichen konsistent mit den geprüften Frontend-Handlern und den Teammitgliedschafts-Policies. Diese Funktionen sind keine zu entziehenden Rechte.
+
+Die verbleibenden konkreten technischen Prüfprioritäten bleiben:
+1. Einladungsablauf und Erzwingung der Vereinsmitgliedschaft vor Vergabe einer Teamrolle.
+2. `matchday_attendance_delete`: fehlende Spieler-/Team-Konsistenz im Vergleich zu INSERT.
+3. Direkte REST-/RPC-Negativtests für fremde Team-IDs und Änderungen von `team_id` an Spielerdatensätzen.
+4. Die Admin-only-Grenzen für Positionen, Rollen, Spielerkader-Archivierung/Reaktivierung und Backup-Import in der Datenbank bestätigen.
