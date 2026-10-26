@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.prevent_player_team_change() FROM PUBLIC, anon, authenticated;
