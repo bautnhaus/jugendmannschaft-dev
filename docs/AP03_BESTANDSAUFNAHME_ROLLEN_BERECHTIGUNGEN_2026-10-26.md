@@ -575,3 +575,49 @@ Prüfgrundlage: aktuelle DEV-Funktionsdefinitionen, ACLs und Supabase Security A
 - Dies ist eine gezielte Reduktion unnötiger direkter RPC-Aufrufe, keine vollständige Bereinigung der SECURITY DEFINER-Warnungen.
 - Ein vollständiger Browser-Regressions-/Integrationstest für alle internen RPC-Aufrufe nach dem Entzug der EXECUTE-Rechte steht noch aus. Die Funktionsaufrufe innerhalb der SECURITY DEFINER-Funktionen sollten in einem isolierten Test noch verifiziert werden.
 - Keine PROD-Änderung und kein Merge.
+
+
+## 10. Ergänzende AP03-Abschlussprüfungen – 26.10.2026
+
+### Interne RPC-Aufrufe nach Einschränkung der Teamrollen-Hilfsfunktionen
+
+- [x] `admin_add_team_role` und `admin_set_trainer_label` wurden ausgelesen: beide sind `SECURITY DEFINER` und gehören `postgres`; beide rufen die zweiparametrige Variante `is_team_admin(uuid,uuid)` intern auf.
+- [x] Kontrollierter Transaktionstest mit Rollback: beide Verwaltungsfunktionen liefen nach Entzug der direkten `EXECUTE`-Rechte ohne Berechtigungsfehler durch.
+- [x] Die Nachkontrolle bestätigte, dass bestehende Teamrollen und Bezeichnungen unverändert blieben.
+
+### Schutz des letzten Administrators
+
+- [x] Kontrollierter Test von `admin_remove_team_role`: Versuch, die einzige Teamadminrolle zu entfernen, wurde mit SQLSTATE `23514` `(check_violation)` blockiert. Nachkontrolle: weiterhin genau eine Teamadminrolle.
+- [x] Kontrollierter Test von `admin_set_club_member_role`: Versuch, die einzige Vereinsadminrolle auf `member` herabzustufen, wurde mit SQLSTATE `23514` blockiert. Nachkontrolle: weiterhin genau eine Vereinsadminrolle.
+- Beide Tests liefen innerhalb zurückgerollter Transaktionen; es wurden keine dauerhaften Rollenänderungen vorgenommen.
+
+### Nutzerseitiger DEV-Praxistest
+
+Am 26.10.2026 hat der Nutzer folgende Tests auf dem veröffentlichten DEV-Webauftritt ausdrücklich als bestanden bestätigt:
+
+- [x] Spieler speichern und nach Neuladen prüfen.
+- [x] Mitglieder-/Teamrolle ansehen oder ändern.
+- [x] Trainer-/Teamrollenverwaltung öffnen.
+
+Diese Bestätigung ergänzt die zuvor dokumentierten SQL- und Codeprüfungen. Sie ist kein vollständiger Browser-Regressionstest sämtlicher App-Funktionen.
+
+### Aktueller Security-Advisor-Stand
+
+- `authenticated_security_definer_function_executable`: 19 Hinweise nach Einschränkung der beiden zweiparametrigen Teamrollen-Hilfsfunktionen (zuvor 21).
+- `auth_leaked_password_protection`: weiterhin als Warnung gemeldet; die Einstellung wurde nicht verändert.
+- Die 19 verbleibenden Hinweise wurden nicht pauschal mit `REVOKE EXECUTE` behandelt, da mehrere RPCs von der App benötigt werden und individuelle Autorisierungsprüfungen enthalten. Die Warnungen sind damit eingeordnet, aber nicht vollständig beseitigt.
+- Die Passwortschutz-Einstellung muss im Supabase-Dashboard geprüft und entsprechend der Sicherheitsentscheidung aktiviert werden. Das kann nicht durch SQL allein abgeschlossen werden.
+
+### Abschlussbewertung
+
+**AP03 DEV-Umsetzung und die in diesem Dokument aufgeführten gezielten Prüfungen sind durchgeführt.** Die zuletzt geänderten internen Funktionsrechte, die beiden Last-Admin-Schutzfälle und die drei vom Nutzer bestätigten UI-Abläufe wurden geprüft.
+
+Folgende Grenzen bleiben ausdrücklich bestehen:
+1. Cross-Club- und Cross-Team-Negativtests sind mangels zweitem Verein/Team nicht durchgeführt.
+2. Kein vollständiger Browser-Regressionstest aller App-Funktionen wurde durchgeführt.
+3. Die Einstellung zum Schutz vor geleakten Passwörtern bleibt im Supabase-Dashboard offen.
+4. 19 Security-Advisor-Hinweise bleiben bestehen und sind nicht automatisch als ausnutzbare Lücken bewertet; sie müssen bei künftigen Änderungen weiter überwacht werden.
+
+Diese Punkte werden als **Restpunkte/Risikoakzeptanz** dokumentiert und blockieren nicht die Dokumentation der bereits umgesetzten DEV-Arbeiten. Sie dürfen jedoch nicht als bestandene Tests ausgegeben werden. Vor einer PROD-Übernahme ist eine separate Freigabe mit Migrationen, Frontend-Stand und Rückfallplan erforderlich.
+
+**Release-Sperre:** keine PROD-Änderung, kein Merge und keine Veröffentlichung durch diese Dokumentationsaktualisierung.
