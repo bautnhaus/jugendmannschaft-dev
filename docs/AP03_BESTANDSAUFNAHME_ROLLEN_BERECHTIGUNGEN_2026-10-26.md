@@ -497,3 +497,24 @@ Die zugehörigen SQL-Dateien liegen im Branch `feature/ap03-security-fixes` unte
 
 ### Abschlussbewertung
 AP03 ist **implementiert und teilweise verifiziert, aber noch nicht vollständig abgeschlossen**. Die verbliebenen Punkte betreffen vor allem fehlende isolierte Negativ-/Integrationstests, nicht bekannte reproduzierte Datenfehler. Keine weitere UI-Restrukturierung gehört zum AP03-Umfang. Das UI-Folgepaket bleibt separat vorgemerkt. Kein PROD-Deploy und kein Merge wurden durch diese Abschlussprüfung ausgelöst.
+
+
+## 7. Nachprüfung Sicherheitsadvisor und gezielte Härtung (26.10.2026)
+
+### Durchgeführte Korrektur
+- Supabase Security Advisor meldete `function_search_path_mutable` für `public.set_updated_at()`.
+- DEV-Funktion wurde mit `ALTER FUNCTION public.set_updated_at() SET search_path = pg_catalog, public` gehärtet.
+- Nachprüfung bestätigte `search_path=pg_catalog, public`; die Funktion ist keine `SECURITY DEFINER`-Funktion und `EXECUTE` ist weder für `anon` noch `authenticated` gewährt.
+- Die Änderung ist im DEV-Branch als Migration dokumentiert: `supabase/migrations/20261026221800_ap03_set_updated_at_search_path_hardening_dev.sql`.
+
+### Verbleibende Supabase-Security-Advisor-Hinweise
+- `authenticated_security_definer_function_executable`: 21 Funktionen. Der Advisor weist darauf hin, dass angemeldete Nutzer diese `SECURITY DEFINER`-Funktionen aufrufen können. Das ist nicht automatisch ein Berechtigungsfehler: mehrere Funktionen prüfen intern die Identität/Rolle und sind für App-Funktionen vorgesehen. Trotzdem müssen alle 21 Einträge systematisch einzeln bewertet werden. Diese Prüfung ist noch nicht abgeschlossen; wir entziehen keine Rechte pauschal, da dadurch legitime App-Abläufe ausfallen könnten.
+- `auth_leaked_password_protection`: Schutz gegen bekannte kompromittierte Passwörter ist deaktiviert. Die Einstellung muss im Supabase-Auth-Dashboard geprüft und bei Verträglichkeit mit dem Login-/Passwortprozess aktiviert werden. Diese Einstellung wurde in diesem Schritt nicht verändert.
+- Der Advisor meldet nach der `set_updated_at`-Korrektur weiterhin die beiden oben genannten Kategorien; eine vollständige Bereinigung der Advisor-Warnungen ist nicht erreicht.
+
+### Abschlussstatus nach dieser Nachprüfung
+- **Erledigt:** gezielte `search_path`-Härtung von `set_updated_at()` in DEV und Verifikation der Funktionseinstellung/Ausführungsrechte.
+- **Noch offen:** notwendige Ausführungsrechte der 21 `SECURITY DEFINER`-Funktionen einzeln bewerten; Einstellung für kompromittierte Passwörter im Dashboard prüfen; Cross-Club-/Cross-Team-Integrationstests mit geeigneten Testdaten; praktischer Test zum Schutz des letzten Admins; vollständiger Browser-Regressionstest.
+- **Umfang:** keine pauschalen Rechteänderungen, keine UI-Restrukturierung, kein PROD-Deploy und kein Merge.
+
+AP03 bleibt **implementiert und teilweise verifiziert, nicht vollständig sicherheitsabgenommen**. Die vorgenannten offenen Prüfungen sind ausdrücklich dokumentiert.
