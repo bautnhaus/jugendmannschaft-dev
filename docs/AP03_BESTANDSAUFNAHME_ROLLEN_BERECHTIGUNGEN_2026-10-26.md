@@ -305,3 +305,32 @@ Die geprüfte RPC `admin_add_team_role` validiert Teamadmin, Rollenwert und Exis
 Die aktuelle DEV-Konsistenzabfrage fand **keine** bestehenden Teamrollen ohne passende Mitgliedschaft im zugeordneten Verein. Das beweist jedoch nicht, dass neue Einladungen diese Invariante einhalten: Im Codepfad ist keine solche Vereinsmitgliedschaftsprüfung erkennbar. Da `invite-trainer` ein neues Konto anlegen und danach direkt eine Teamrolle setzen kann, ist das ein konkreter Prüfpunkt für das Ein-Verein-pro-Nutzer-Modell.
 
 **Priorität: P1 – vor weiteren Änderungen am Einladungsablauf klären.** Soll jede Mannschaftszuordnung zwingend eine Vereinsmitgliedschaft voraussetzen? Falls ja, sollte die Prüfung serverseitig atomar bzw. in einem kontrollierten RPC-/Einladungsablauf durchgesetzt werden. Dabei darf ein bereits einem anderen Verein zugeordnetes Konto nicht stillschweigend übernommen werden. Keine Änderung wurde vorgenommen.
+
+
+## 14. Fachliche Soll-Regeln – vom Nutzer bestätigt am 26.10.2026
+
+Folgende Rechte sind ausdrücklich beabsichtigt und dürfen bei einer RLS-Härtung nicht versehentlich entzogen werden:
+
+- Trainer dürfen Trainings, Trainingsserien und Spieltage ihrer Mannschaft anlegen, bearbeiten und löschen.
+- Trainer dürfen die Anwesenheit anderer Trainer innerhalb ihrer eigenen Mannschaft dokumentieren und ändern.
+- Teamdaten dürfen dadurch nicht teamübergreifend bearbeitet werden. Alle direkten Tabellenzugriffe müssen serverseitig auf die Mannschaft begrenzt bleiben.
+- Mannschaftsadmins behalten zusätzliche Verwaltungs- und Rollenfunktionen; die genaue Admin-only-Matrix wird noch anhand der UI und Produktregeln abgeglichen.
+
+Daraus folgt: Die zuvor dokumentierten Traineranwesenheits-Policies sind hinsichtlich der Erlaubnis, andere Trainer derselben Mannschaft zu bearbeiten, **kein Fehler**. Entscheidend ist die Begrenzung auf genau die Mannschaft, zu der der Termin gehört.
+
+## 15. Neu priorisierte Prüfung nach fachlicher Klärung
+
+### P1 – Matchday-Anwesenheit DELETE konsistent absichern
+Die aktuelle `matchday_attendance_delete`-Policy prüft, ob der Nutzer Teammitglied des Spieltags ist, bindet den Datensatz aber nicht zusätzlich an einen Spieler derselben Mannschaft. INSERT und UPDATE prüfen diese Zuordnung bei der neuen Zeile. Das ist eine konkrete Policy-Inkonsistenz. Vor einer Änderung ist ein nicht-destruktiver Negativtest zu planen; anschließend kann die DELETE-Bedingung auf die gleiche Termin-/Spieler-Team-Konsistenz ausgerichtet werden.
+
+### P1 – Einladungsprozess und Vereinszugehörigkeit
+Der Codepfad `invite-trainer` ruft nach der Teamadmin-Prüfung `admin_add_team_role` auf. Die Funktion prüft die Vereinsmitgliedschaft des Zielkontos nicht ausdrücklich und erstellt keine `club_members)-Zuordnung. Die Bestandsabfrage fand keine existierenden Inkonsistenzen; dennoch bleibt die Durchsetzung der Ein-Verein-pro-Nutzer-Regel im Einladungsprozess offen.
+
+### P2 – Rollenabgleich Spieler-Stammdaten und Positionen
+Die aktuelle RLS erlaubt Teammitgliedern INSERT und UPDATE von `players`, während DELETE auf Teamadmins beschränkt ist. Die UI verlangt für das Entfernen/Reaktivieren Adminrechte; beim Hinzufügen/Bearbeiten von Spielern ist in den geprüften Handlern kein gleichwertiger `adminGuard()` vorhanden. Das kann beabsichtigt sein, muss aber fachlich bestätigt werden. `positions` und `player_positions` sind deutlich enger auf Teamadmins begrenzt. Nicht pauschal ändern, bevor die Sollrolle festgelegt ist.
+
+### P2 – Empfehlungen und Zuordnungen
+`matchday_recommendation_runs` erlaubt Teammitgliedern UPDATE und DELETE; `matchday_recommendation_players`, `matchday_players`, `training_players` und `training_responses` sind ebenfalls teambezogen für Teammitglieder beschreibbar. Die Policies prüfen überwiegend Teamzugehörigkeit und Zuordnungskonsistenz. Das passt grundsätzlich zur bestätigten Selbstverwaltung von Trainings und Spieltagen; ob Empfehlungsläufe gelöscht oder verändert werden dürfen, ist noch mit der fachlichen Bedeutung von Historie/Protokoll abzugleichen.
+
+### Aktueller Stand
+Nur read-only geprüft und dokumentiert. Keine RLS-Policy, RPC, Edge Function oder Frontenddatei wurde geändert. DEV-Daten und PROD sind unverändert.
