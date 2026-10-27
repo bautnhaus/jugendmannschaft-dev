@@ -702,3 +702,35 @@ Die aktuelle Inventur fand unter anderem:
 6. Abschlussbericht mit verbleibenden Advisor-Warnungen, Tarifgrenze, Testgrenzen und explizitem DEV-only-Status.
 
 **Inventurstatus:** Der Schema-/Berechtigungs-Snapshot ist erhoben. Die Punkte oben sind die zusammengeführte Restliste; während der weiteren Inventur werden keine weiteren punktuellen Rechteänderungen vorgenommen. PROD bleibt unangetastet.
+
+
+## 13. Abarbeitung der konsolidierten Restliste – Befund zur Tabellen-ACL (27.10.2026)
+
+Die erste Restlisten-Prüfung hat einen priorisierten Befund ergeben. Es wurden noch keine Rechte geändert.
+
+### 13.1 Migrationen – Ergebnis
+
+- Die fünf AP03-Dateien sind im Feature-Branch vorhanden.
+- Die erwarteten Dateien für die 13 AP01-/AP02-Migrationen wurden unter den anhand des DEV-Migrationsprotokolls erwarteten Pfaden im Feature-Branch nicht gefunden. Auch die geprüften Standardzweige der beiden Projekt-Repositories lieferten diese Dateipfade nicht.
+- Daraus folgt: Der vollständige historische Migrationssatz ist derzeit nicht aus den bekannten Pfaden belegbar. Die 18 Einträge im Supabase-Migrationsprotokoll sind vorhanden, aber eine saubere Neuinstallation aus dem GitHub-Branch ist noch nicht nachgewiesen. Die älteren Migrationen dürfen nicht aus aktuellen Datenbankdefinitionen rekonstruiert oder blind neu angewendet werden; es muss zunächst der tatsächliche Ablageort bzw. die Quelle der historischen SQL-Dateien ermittelt werden.
+- Die doppelte set_updated_at()-Datei bleibt ein separater Konsolidierungspunkt.
+
+### 13.2 Tabellenrechte – priorisierter Befund
+
+- 77 RLS-Policies im Schema public; alle 77 sind ausschließlich für authenticated definiert. Es wurden keine Policies für anon gefunden.
+- Gleichzeitig weist die Rechteabfrage direkte Tabellenrechte für anon auf mehreren fachlichen Tabellen aus, darunter attendance, matchday_trainers, matchdays, player_positions, players, positions, profiles, seasons, team_member_roles, team_role_change_log, training_players, training_responses, training_series, training_trainers und trainings.
+- In den abgefragten Grants erscheinen für anon teilweise auch TRUNCATE. TRUNCATE wird nicht durch RLS-Policies geschützt. Dieser Befund ist deshalb höher zu priorisieren als kosmetische Advisor-Warnungen und muss vor einer Abschlussfreigabe geklärt werden.
+- Es wurden keine Änderungen vorgenommen, weil zunächst zu unterscheiden ist, welche Rechte direkt gewährt, über PUBLIC geerbt oder von den zugrunde liegenden ACLs/Default Grants bereitgestellt werden und welche Grants die frühere AP02-Migration tatsächlich zurückgenommen hat. Der Befund wird nicht als bestätigter ausnutzbarer Angriff bezeichnet, aber auch nicht als harmlos eingestuft.
+
+### 13.3 Nicht-SECURITY-DEFINER-Triggerfunktionen
+
+- protect_player_active_status() und require_active_player_for_new_assignment() sind Triggerfunktionen (kein normaler Frontend-RPC) und haben laut Privilegienabfrage EXECUTE für anon und authenticated.
+- Diese Rechte sind ein Kandidat für eine gezielte Einschränkung, aber gegenüber dem Tabellen-ACL-Befund nachrangig. Vor einer Änderung wird geprüft, ob die Triggerfunktion über Triggerkontext weiter funktioniert und ob ein direkter Funktionsaufruf überhaupt technisch möglich ist.
+
+### 13.4 Status nach dieser Prüfrunde
+
+- Migrationen: nicht vollständig aus Git reproduzierbar; historische Ablage/Quelle offen.
+- Tabellenrechte: auffällige direkte anon-Grants, einschließlich angezeigter TRUNCATE-Privilegien; vor Abschluss klären.
+- RLS: auf allen 25 Tabellen aktiviert; 77 Policies, alle für authenticated.
+- Keine neuen Berechtigungsänderungen in dieser Prüfrunde.
+- Nächster Schritt: tatsächliche effektive ACLs und PUBLIC-Grants mit has_table_privilege und aclexplode auflösen und danach eine einzige gebündelte Korrekturliste erstellen. Keine Änderungen an PROD.
