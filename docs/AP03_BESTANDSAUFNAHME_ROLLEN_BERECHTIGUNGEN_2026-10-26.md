@@ -763,3 +763,15 @@ Migration: 20261027051509 / ap03_restrict_trigger_function_execute_dev
 - Historische AP01-/AP02-Migrationsdateien sind an den erwarteten Pfaden nicht auffindbar. Der vollständige Migrationsbestand kann noch nicht aus dem Feature-Branch reproduziert werden. Nicht rekonstruieren oder erneut anwenden, solange der Originalinhalt nicht aus einer verlässlichen Quelle vorliegt.
 - Cross-Club-/Cross-Team-Negativtests sind wegen fehlender zweiter Testentitäten weiterhin nicht ausführbar.
 - Die nächste Regressionrunde soll sich auf vorhandene Kernabläufe und Rollback-Tests konzentrieren; nach diesem Abschnitt keine weitere ACL-Änderung ohne zusammengefassten Befund.
+
+
+## 15. Vorprüfung der verbleibenden SECURITY DEFINER-Warnungen (27.10.2026)
+
+Die 18 Advisor-Hinweise wurden in einem zusammengefassten Katalog erneut mit Funktionsdefinitionen und Aufrufzweck abgeglichen. Es wurden keine weiteren EXECUTE-Rechte verändert.
+
+- Verwaltungsfunktionen wie admin_add_club_member, admin_add_club_member_by_email, admin_add_team_role, admin_create_team, admin_remove_club_member, admin_remove_team_role, admin_set_club_member_role und admin_set_trainer_label referenzieren auth.uid() und die jeweilige Club-/Team-Admin-Prüfung. Diese sollen für die angemeldete App erreichbar bleiben, sofern die zugehörigen Negativtests bestehen.
+- Lesefunktionen get_club_members, get_club_members_v2, get_club_players und get_team_trainers_v2 referenzieren auth.uid() sowie eine Club-/Team-Berechtigungsprüfung; ihre Ausgabe und Fremdteam-Negativtests bleiben Bestandteil der Regression.
+- is_club_admin, is_club_member, is_super_admin, is_team_admin(uuid) und is_team_member(uuid) sind Auth-Kontext-Helfer, die von RLS bzw. App-Logik gebraucht werden. Ihre direkten Rückgabewerte sind keine Geheimnisse; sie müssen aber an den aktuellen auth.uid()-Kontext gebunden bleiben.
+- save_player_with_positions referenziert auth.uid() und validiert die Teammitgliedschaft sowie die Positionszuordnung; diese RPC ist für das Frontend erforderlich.
+- Die zweiparametrigen Teamrollen-Helfer und die drei reinen Triggerfunktionen sind bereits für direkte Aufrufe durch anon/authenticated gesperrt und erscheinen nicht mehr als die hier verbleibenden 18 Advisor-Funde.
+- Diese Prüfung ist ein statischer Plausibilitätscheck, kein Beweis, dass jede Funktion fehlerfrei autorisiert. Der Security Advisor warnt weiterhin, weil diese SECURITY DEFINER-RPCs absichtlich für authenticated ausführbar sind. Ein Entfernen aller Warnungen würde die App-Funktionen beeinträchtigen oder eine gezielte Architekturänderung erfordern.
