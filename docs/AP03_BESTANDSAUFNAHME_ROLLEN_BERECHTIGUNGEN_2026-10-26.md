@@ -873,3 +873,68 @@ Die Datei `supabase/migrations/20261026221800_ap03_set_updated_at_search_path_ha
 ### Status
 
 Die fünf nächsten Arbeitsschritte wurden soweit mit lesenden Prüfungen und einer klar belegten Bereinigung möglich ausgeführt. AP03 bleibt NICHT freigegeben. Kein Merge und keine PROD-Änderung.
+
+
+## 19. Gezielter Abschluss der zwei Restpunkte (27.10.2026)
+
+Die beiden zuvor offenen Punkte wurden anhand der vom Nutzer aus dem aktuellen DEV-SQL-Editor gelieferten Definitionen/Policies abschließend gezielt geprüft. Es wurde keine weitere Datenbankänderung vorgenommen, da beide Schutzmaßnahmen im aktuellen DEV bereits vorhanden sind.
+
+### 19.1 Trainer-Einladung / Vereinszugehörigkeit – im aktuellen RPC abgesichert
+
+Die aktuelle Definition von `public.admin_add_team_role(p_team_id uuid, p_user_id uuid, p_role text)` enthält:
+- Prüfung, dass der Aufrufer Teamadmin der angegebenen Mannschaft ist;
+- Validierung der Zielrolle auf `admin` oder `trainer`;
+- Prüfung, dass das Zielkonto existiert;
+- Ermittlung der Vereins-ID der Mannschaft;
+- bei gesetzter Vereins-ID: Ablehnung, wenn das Zielkonto bereits einem anderen Verein zugeordnet ist;
+- Anlegen der Vereinsmitgliedschaft mit `ON CONFLICT(user_id) DO NOTHING` und anschließende explizite Bestätigung, dass das Zielkonto dem erwarteten Verein angehört;
+- erst danach Vergabe der Teammitgliedschaft und Teamrolle.
+
+**Bewertung:** Der zuvor vermutete Mangel ist in der aktuell ausgelesenen RPC-Definition nicht vorhanden. Für Mannschaften mit gesetzter `club_id` wird die Ein-Verein-pro-Nutzer-Regel serverseitig geprüft und die Vereinszugehörigkeit bestätigt. Für den Sonderfall einer Mannschaft ohne `club_id` überspringt der Code diese Vereinsprüfung; dieser Fall ist hier nicht als Fehler bewertet, weil die gelieferten Belege nicht zeigen, dass solche Mannschaften im aktuellen Produktkontext zulässig oder vorhanden sind. Keine Änderung erforderlich für den belegten Standardpfad.
+
+### 19.2 `matchday_attendance` DELETE – Teamkonsistenz ist bereits abgesichert
+
+Die aktuelle Policy `matchday_attendance_delete` verbindet den Spieltag mit dem Spieler und verlangt:
+- `m.id = matchday_attendance.matchday_id`;
+- `p.id = matchday_attendance.player_id`;
+- `p.team_id = m.team_id`;
+- `is_team_member(m.team_id)`.
+
+Damit wird beim Löschen ebenso wie beim INSERT geprüft, dass Spieler und Spieltag derselben Mannschaft zugeordnet sind und der Aufrufer Teammitglied ist.
+
+**Bewertung:** Die zuvor beschriebene DELETE-Inkonsistenz besteht im aktuell gelieferten DEV-Policy-Stand nicht mehr. Keine Änderung erforderlich.
+
+### 19.3 Ergebnis der gezielten Restprüfung
+
+| Restpunkt | Aktueller Befund | Entscheidung |
+|---|---|---|
+| Vereinszugehörigkeit bei `admin_add_team_role` | Bei Mannschaften mit gesetzter `club_id` serverseitig geprüft und bestätigt | Kein weiterer Patch auf Basis der vorliegenden Definition |
+| Teamkonsistenz bei `matchday_attendance_delete` | Spieler- und Spieltag-Teamzugehörigkeit wird geprüft | Kein weiterer Patch erforderlich |
+
+Diese Prüfung stützt sich auf die vom Nutzer bereitgestellten aktuellen DEV-Ausgaben. Es wurde kein zusätzlicher API-Angriffstest durchgeführt. Es wird deshalb nicht behauptet, dass vollständige Cross-Club-/Cross-Team-Isolation praktisch bewiesen sei.
+
+## 20. AP03-Abschlussentscheidung und bewusst verschobene Arbeiten
+
+**AP03 wird als abgeschlossene Sicherheitsbestandsaufnahme und gezielte Härtungsrunde dokumentiert – mit ausdrücklich benannten Grenzen.** Der Abschluss bedeutet nicht, dass die Anwendung vollständig sicherheitszertifiziert oder PROD-freigegeben ist.
+
+Abgeschlossen innerhalb des AP03-Umfangs:
+- die 18 Security-Advisor-Warnungen wurden einzeln bewertet und in `AP03_SECURITY_ADVISOR_18_WARNINGS_DECISIONS_2026-10-27.md` dauerhaft dokumentiert;
+- die gezielte DEV-Korrektur von `save_player_with_positions` für Super-Admins wurde angewendet und die gespeicherte Definition sowie EXECUTE-Rechte wurden nachgeprüft;
+- die beiden zuvor offenen konkreten Restpunkte wurden anhand des aktuellen DEV-Funktionscodes und der aktuellen Policy-Ausgabe abgeglichen; für beide ist auf Basis der vorliegenden Belege keine weitere Migration erforderlich;
+- die früheren Entscheidungen und die Grenzen der Bestandsaufnahme bleiben erhalten, ohne eine neue allgemeine Prüfrunde zu eröffnen.
+
+Bewusst auf die spätere Rollen-/UI-Umsetzung verschoben:
+- Super-Admin-Zugriff auf die passende Vereins-/Mannschaftsauswahl und die Spielerverwaltung im Frontend;
+- manuelle Integrationstests dieser Super-Admin-Funktionen;
+- vollständige UI-Regression nach den letzten ACL-Änderungen;
+- positive und negative Cross-Club-/Cross-Team-Integrationstests, sobald dafür ein geeigneter, sicherer Testaufbau mit unabhängigen Testkontexten besteht;
+- gegebenenfalls offene AP02-Tests T08–T10, die einen zweiten Verein bzw. geeignete entbehrliche Testkonten benötigen.
+
+Nicht Teil des AP03-Abschlusses:
+- vollständige Penetrationsprüfung oder Sicherheitszertifizierung;
+- bytegenaue Rekonstruktion aller historischen Migrationen;
+- Behebung von Performance-Advisor-Hinweisen;
+- Aktivierung von Leaked-Password-Protection, soweit dies im aktuellen Supabase-Tarif nicht verfügbar ist;
+- Änderungen oder Deployment in PROD.
+
+**Release-Grenze:** Keine PROD-Migration, kein Merge und keine PROD-Freigabe sind durch diesen Abschluss autorisiert. Die spätere PROD-Planung erfolgt separat nach der strukturellen Umsetzung der Rollenverwaltung und den dazu passenden UI-/Integrationstests.
