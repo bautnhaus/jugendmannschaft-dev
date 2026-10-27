@@ -775,3 +775,29 @@ Die 18 Advisor-Hinweise wurden in einem zusammengefassten Katalog erneut mit Fun
 - save_player_with_positions referenziert auth.uid() und validiert die Teammitgliedschaft sowie die Positionszuordnung; diese RPC ist für das Frontend erforderlich.
 - Die zweiparametrigen Teamrollen-Helfer und die drei reinen Triggerfunktionen sind bereits für direkte Aufrufe durch anon/authenticated gesperrt und erscheinen nicht mehr als die hier verbleibenden 18 Advisor-Funde.
 - Diese Prüfung ist ein statischer Plausibilitätscheck, kein Beweis, dass jede Funktion fehlerfrei autorisiert. Der Security Advisor warnt weiterhin, weil diese SECURITY DEFINER-RPCs absichtlich für authenticated ausführbar sind. Ein Entfernen aller Warnungen würde die App-Funktionen beeinträchtigen oder eine gezielte Architekturänderung erfordern.
+
+
+## 16. Regressionrunde nach den ACL-Korrekturen (27.10.2026)
+
+### Automatisierte DB-/Katalogprüfungen
+
+- PASS: Alle 25 geprüften Tabellen im Schema public haben RLS aktiviert.
+- PASS: Nach den Korrekturen hat anon auf keiner geprüften Tabelle SELECT, INSERT, UPDATE, DELETE oder TRUNCATE; authenticated hat auf keiner geprüften Tabelle TRUNCATE.
+- PASS: Die direkten EXECUTE-Rechte von anon/authenticated sind für `log_team_role_change()`, `protect_player_active_status()` und `require_active_player_for_new_assignment()` entzogen.
+- PASS: Die Katalogabfrage bestätigt, dass `log_team_role_change()` weiterhin zwei Triggerbindungen hat, `protect_player_active_status()` eine und `require_active_player_for_new_assignment()` vier.
+- PASS: Negativtest in DEV: Ein Insert in `training_players` mit einem inaktiven Spieler wurde durch die Triggerfunktion mit SQLSTATE 23514 (`check_violation`) abgewiesen. Der Test wurde in einem inneren Ausnahmeblock ausgeführt; die unzulässige Zuordnung wurde nicht gespeichert.
+- PASS (früherer AP03-Test): Entfernen der einzigen Team-Admin-Rolle und Herabstufen des einzigen Club-Admins wurden mit SQLSTATE 23514 blockiert; die Admin-Zählungen blieben unverändert.
+- PASS (manueller DEV-Test, vorher bestätigt): Spieler speichern und nach Neuladen prüfen; Team-/Mitgliederrollen ansehen und ändern; Trainer-/Teamrollenverwaltung öffnen.
+
+### Noch nicht bestanden bzw. nicht ausgeführt
+
+- OFFEN: Vollständiger End-to-End-Test der UI nach den letzten ACL-Korrekturen (Training, Spieltag, Spieleranlage/-bearbeitung, Rollenverwaltung). Die Katalog- und SQL-Prüfungen ersetzen diesen Test nicht.
+- OFFEN: Positivtest der aktiven Spielerzuordnung über die reguläre App sowie Update-Triggerpfade.
+- NICHT TESTBAR MIT AKTUELLEN DEV-DATEN: Cross-Club-/Cross-Team-Isolation, da keine zweite unabhängige Testorganisation bzw. kein zweites Testteam vorhanden ist.
+- OFFEN: Vollständige Reproduzierbarkeit aller AP01-/AP02-Migrationen aus GitHub; die historischen SQL-Dateien fehlen an den geprüften Pfaden.
+- WEITERHIN WARNUNG: 18 SECURITY DEFINER-Funktionen sind absichtlich für authenticated ausführbar und bleiben einzeln auf ihre Autorisierung zu prüfen. Supabase warnt weiterhin; die Warnung ist kein automatischer Beweis einer ausnutzbaren Schwachstelle.
+- TARIFBEDINGT OFFEN: Schutz gegen bekannte kompromittierte Passwörter ist im verwendeten Supabase-Tarif nicht verfügbar.
+
+### Regressionsergebnis
+
+Die gezielten ACL-Prüfungen und der Negativtest für inaktive Spieler sind bestanden. AP03 ist dennoch NICHT abschließend freigegeben, weil der vollständige UI-End-to-End-Test, Cross-Club-/Cross-Team-Tests und die historische Migrationsreproduzierbarkeit offen sind. Keine Änderung an PROD; kein Merge.
