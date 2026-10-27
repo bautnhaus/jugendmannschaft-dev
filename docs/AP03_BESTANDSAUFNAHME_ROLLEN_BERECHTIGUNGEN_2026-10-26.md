@@ -656,3 +656,49 @@ Diese Punkte werden als **Restpunkte/Risikoakzeptanz** dokumentiert und blockier
 - Die Migration zur Einschränkung der zweiparametrigen Teamrollen-Hilfsfunktionen wurde als `20261026222403_ap03_restrict_internal_team_role_helpers_dev.sql` ergänzt.
 - Beim `set_updated_at()`-Hardening besteht eine historische Versionsabweichung: Die DEV-Migrationshistorie führt Version `20261026221728`, während bereits eine Datei mit Zeitstempel `20261026221800` im Branch lag. Eine Datei mit der registrierten Version `20261026221728` wurde ergänzt. Beide enthalten denselben idempotenten `ALTER FUNCTION ... SET search_path`-Befehl; die doppelte historische Datei ist als Bereinigungs-/Konsolidierungspunkt zu beachten, bevor ein vollständig neu aufgebautes Schema über diese Dateien reproduziert wird.
 - Dieser Abgleich ist damit verbessert, aber noch nicht als vollständige Reproduktion einer frischen Datenbank bewertet: Vor einer solchen Aussage müssen alle registrierten Migrationen gegen den Branchbestand und ihre Reihenfolge geprüft werden.
+
+
+## 12. AP03 Gesamtinventur – erster konsolidierter Snapshot (27.10.2026)
+
+Diese Inventur wurde bewusst read-only durchgeführt. Während der Inventur wurden keine weiteren Berechtigungen oder Datenbankobjekte verändert.
+
+### 12.1 Datenbankmigrationen
+
+- Das DEV-Migrationsprotokoll enthält 18 Einträge insgesamt: AP01 (5), AP02 (8) und AP03 (5).
+- Für die vier AP03-Änderungsgruppen sind SQL-Dateien im Branch vorhanden: Hauptkorrekturen, Triggerrechte für `prevent_player_team_change`, `set_updated_at()`-search_path, interne zweiparametrige Teamrollen-Hilfsfunktionen und Trigger-Auditfunktion (die Hauptkorrekturen und Hardening sind dabei zwei separate Hauptdateien; insgesamt liegen derzeit fünf AP03-Dateien vor).
+- Versionsabweichung: DEV führt `20261026221728 ap03_set_updated_at_search_path_hardening`; im Branch liegen sowohl `20261026221728_ap03_set_updated_at_search_path_hardening.sql` als auch die ältere Datei `20261026221800_ap03_set_updated_at_search_path_hardening_dev.sql`. Beide enthalten denselben `ALTER FUNCTION`-Befehl. Dies ist eine Versions-/Duplikatbereinigung, keine abweichende Datenbanklogik.
+- Für eine vollständige Neuaufsetzung ist der gesamte Satz aller 18 historischen Migrationen einschließlich ihrer Reihenfolge und Datei-Existenz noch abschließend gegen den Branchbestand zu verifizieren; der vorliegende Snapshot allein belegt noch keine vollständige Fresh-Install-Reproduzierbarkeit.
+
+### 12.2 Tabellen, RLS und Tabellenrechte
+
+- 25 Tabellen/partitionierte Tabellen im Schema `public`; RLS ist auf allen 25 aktiviert. Keine der geprüften Tabellen hat RLS deaktiviert.
+- RLS-Aktivierung allein beweist nicht die Korrektheit jeder Policy. Policies wurden vollständig aus `pg_policies` ausgelesen; die Rollen- und Teamgrenzen sowie Trainerteilnahme-Zuordnungen bleiben zentrale Regressionstestbereiche.
+- Bei mehreren fachlichen Tabellen bestehen ACL-Einträge für `anon` und/oder breite Rechte für `authenticated`. Da RLS zusätzlich greift, ist dies nicht automatisch ein Datenzugriffsbypass. Die Kombination aus Tabellen-ACL, Rollen-spezifischen Policies und tatsächlichem API-Zugriff muss im finalen Test als Einheit bewertet werden. Keine pauschale ACL-Änderung während dieser Inventur.
+
+### 12.3 Trigger und Triggerfunktionen
+
+Die aktuelle Inventur fand unter anderem:
+- `set_updated_at()` an `matchday_attendance`, `matchdays`, `players`, `seasons`, `teams` und `trainings`; der feste Suchpfad `pg_catalog, public` ist gesetzt.
+- `prevent_player_team_change()` an `players`; direkte EXECUTE-Rechte für `anon` und `authenticated` sind entzogen.
+- `log_team_role_change()` mit zwei Triggern an `team_member_roles`; direkte EXECUTE-Rechte für `anon` und `authenticated` sind entzogen.
+- `prevent_last_team_admin_removal()` als verzögerten Constraint-Trigger auf `team_member_roles`.
+- `cleanup_matchday_recommendations_before_player_delete()` als SECURITY DEFINER-Triggerfunktion vor dem Löschen von Spielern.
+- `protect_player_active_status()` und `require_active_player_for_new_assignment()` sind Triggerfunktionen ohne SECURITY DEFINER, haben aber aktuell laut ACL-Abfrage EXECUTE-Rechte für `anon` und `authenticated`. Wegen des Trigger-Rückgabetyps ist das nicht gleichbedeutend mit einem normalen RPC-Aufruf; ihre Rechte werden als Kandidaten für gezielte ACL-Härtung in der Maßnahmenliste geführt, nicht während der Inventur verändert.
+
+### 12.4 SECURITY DEFINER und Advisor
+
+- Der Security Advisor meldet 18 `authenticated_security_definer_function_executable`-Hinweise. Die noch gelisteten Funktionen sind überwiegend Verwaltungs-/Lesefunktionen und eigene Rollenprüfer, die für die angemeldete App erreichbar sein sollen; jede muss durch einen angemessenen Negativtest abgesichert sein.
+- Die Funktionen mit beliebiger Benutzer-ID (`is_team_admin(uuid,uuid)`, `is_team_member(uuid,uuid)`) sind für direkte EXECUTE-Aufrufe durch `authenticated` und `anon` bereits gesperrt; interne Verwaltungs-RPC-Aufrufe wurden zuvor in Rollback-Transaktionen geprüft.
+- `log_team_role_change()` ist nicht mehr direkt ausführbar durch `authenticated` oder `anon`; die Triggerbindung bleibt vorhanden.
+- `auth_leaked_password_protection` bleibt eine separat dokumentierte Tarif-/Plattformgrenze und ist nicht durch SQL lösbar.
+
+### 12.5 Konsolidierte offene Punkte – keine neuen Einzelaufträge
+
+1. Vollständiger Abgleich aller 18 registrierten Migrationen gegen die Dateien im Branch.
+2. Prüfung der verdächtigen breiten Tabellen-ACLs gegen RLS-Policies und tatsächlichen Clientbedarf.
+3. Bewertung der beiden Triggerfunktionen mit breiten EXECUTE-Rechten.
+4. Negativtests für Rollen-/Vereinsgrenzen, Cross-Team-Positions-/Anwesenheitszuordnung und Trainerteilnahme-Zuordnungen; Fälle ohne zweite Testmannschaft bzw. zweiten Verein als nicht testbar kennzeichnen.
+5. Regression der Kernabläufe nach allen bereits angewendeten AP03-Berechtigungsänderungen.
+6. Abschlussbericht mit verbleibenden Advisor-Warnungen, Tarifgrenze, Testgrenzen und explizitem DEV-only-Status.
+
+**Inventurstatus:** Der Schema-/Berechtigungs-Snapshot ist erhoben. Die Punkte oben sind die zusammengeführte Restliste; während der weiteren Inventur werden keine weiteren punktuellen Rechteänderungen vorgenommen. PROD bleibt unangetastet.
