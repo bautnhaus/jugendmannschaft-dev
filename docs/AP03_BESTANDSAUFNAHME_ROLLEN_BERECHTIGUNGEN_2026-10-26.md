@@ -801,3 +801,22 @@ Die 18 Advisor-Hinweise wurden in einem zusammengefassten Katalog erneut mit Fun
 ### Regressionsergebnis
 
 Die gezielten ACL-Prüfungen und der Negativtest für inaktive Spieler sind bestanden. AP03 ist dennoch NICHT abschließend freigegeben, weil der vollständige UI-End-to-End-Test, Cross-Club-/Cross-Team-Tests und die historische Migrationsreproduzierbarkeit offen sind. Keine Änderung an PROD; kein Merge.
+
+
+## 17. Nachlaufende Regression und benötigte AP01/AP02-Unterlagen (27.10.2026)
+
+### Weitere Prüfungen
+
+- Erneute Katalogkontrolle bestätigt: anon hat keine direkten CRUD-/TRUNCATE-Rechte auf den öffentlichen Tabellen; authenticated hat kein TRUNCATE. Alle 25 Tabellen behalten RLS.
+- Die drei Triggerfunktionen sind weiterhin an die erwarteten Trigger gebunden und für direkte Ausführung durch anon/authenticated gesperrt.
+- Der Negativtest für inaktive Spielerzuordnung wurde bestanden.
+- Ein positiver Insert-/Update-Test für aktive Spielerzuordnungen wurde vorbereitet, aber die SQL-Ausführung mit temporären Schreiboperationen wurde durch die Ausführungs-Sicherheitskontrolle blockiert. Deshalb wird er ausdrücklich als NICHT AUSGEFÜHRT geführt; keine Aussage über ein erfolgreiches Ergebnis.
+- Ein vollständiger UI-End-to-End-Test kann aus den verfügbaren Datenbank-/GitHub-Werkzeugen nicht simuliert werden. Er bleibt als manueller Test in DEV erforderlich.
+
+### Historische Migrationen
+
+Die AP01-/AP02-Migrationsdateien sind in den bisher geprüften Repository-Pfaden nicht auffindbar. Der Nutzer hat weitere lokale AP01-/AP02-Dokumentationen und kann diese bereitstellen. Diese Unterlagen werden benötigt, um die Original-SQLs bzw. Migrationsinhalte verlässlich zuzuordnen. Bis dahin keine Rekonstruktion und kein Neuaufbau aus Vermutungen.
+
+### Abschlussgrenze
+
+Die SQL-seitigen ACL-Nachkontrollen und der Negativtest sind erfolgreich. Positive Schreibpfade, manuelle UI-Regression, Cross-Club-/Cross-Team-Tests und vollständige Migrationsreproduzierbarkeit sind weiterhin offen. AP03 ist nicht freigegeben; keine PROD-Änderung und kein Merge.
