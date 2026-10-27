@@ -820,3 +820,56 @@ Die AP01-/AP02-Migrationsdateien sind in den bisher geprüften Repository-Pfaden
 ### Abschlussgrenze
 
 Die SQL-seitigen ACL-Nachkontrollen und der Negativtest sind erfolgreich. Positive Schreibpfade, manuelle UI-Regression, Cross-Club-/Cross-Team-Tests und vollständige Migrationsreproduzierbarkeit sind weiterhin offen. AP03 ist nicht freigegeben; keine PROD-Änderung und kein Merge.
+
+
+## 18. Abgleich lokaler AP01/AP02-Unterlagen und Live-Nachkontrolle (27.10.2026)
+
+### Supabase-Migrationshistorie (Live, DEV)
+
+Die aktuelle Liste der registrierten Migrationen wurde erneut aus dem DEV-Projekt `pzazqvvoruqnqhcorbwx` gelesen. Sie enthält 20 Versionen. Für AP01 sind die fünf registrierten Versionen von `20261022195046` bis `20261023032020` vorhanden; für AP02 sind die acht Versionen von `20261023203742` bis `20261026150017` vorhanden; AP03 umfasst die sieben Versionen von `20261026210356` bis `20261027051509`.
+
+Die Live-Abfrage zu den beiden ähnlich benannten `set_updated_at`-Migrationen bestätigt ausschließlich `20261026221728 ap03_set_updated_at_search_path_hardening` in der Datenbankhistorie. Die Version `20261026221800` ist nicht registriert.
+
+### Lokale Archivpakete: belastbare Einordnung
+
+- AP01-Abschluss-/Release-Unterlagen enthalten Bestandsaufnahme, ACL-Befunde, Trigger/Eventtrigger-Hinweise, Testgrenzen und Migrationshistorie-Hinweise. Sie dokumentieren unter anderem, dass Migration A (Last-Admin-Schutz) und Migration B (signaturgenaue EXECUTE-Entzüge) ausgeführt wurden. Die AP01-Pakete enthalten auch Entwurfs-/Prüf-SQL, aber keine vollständige, kanonische Sammlung aller ausgeführten historischen Migrationsdateien.
+- Das Paket `AP02_Migrationspaket_v1.0.0` enthält `20261023_ap02_foundation_v1.sql` sowie Preflight-, Postflight-, Test- und Rollback-SQL. Die darin enthaltene Datei ist eine fachliche Paketdatei; sie beweist nicht allein, dass ihr Inhalt bytegenau der registrierten Migration `20261023203742 ap02_foundation_v1_0_0_dev` entspricht.
+- Die AP02-Technikpakete kennzeichnen `AP02_migration_01_foundation_DRAFT.sql` und `AP02_migration_02_roles_cutover_DRAFT.sql` ausdrücklich als Entwürfe/nicht ausführen. Auch die P0-Cutover-Versionen `CANDIDATE` und `REVIEW`, sowie die Rechtebasis-Datei `AP02_P0_1_Rechtebasis_ENTWURF_NICHT_AUSFUEHREN.sql`, sind keine Autorisierung zur Ausführung.
+- Die Rollback- und Baseline-Pakete sind Dokumentation/Prüfgrundlage, keine Aufforderung, sie jetzt auszuführen.
+
+### Read-only Postflight-Ergebnisse (DEV)
+
+| Prüfung | Ergebnis |
+|---|---:|
+| Öffentliche Tabellen mit RLS | 25 von 25 |
+| RLS-Policies insgesamt | 77 |
+| Policies mit Rolle ausschließlich `authenticated` | 77 |
+| Legacy-Teamrollen ohne passende normalisierte Rolle | 0 |
+| Legacy-Mitgliedschaften ohne irgendeine normalisierte Rolle | 0 |
+| Öffentliche Tabellen ohne RLS | 0 |
+| Tabellen mit direkten `anon`-SELECT/INSERT/UPDATE/DELETE/TRUNCATE-Rechten | 0 |
+| Tabellen mit `authenticated`-TRUNCATE-Recht | 0 |
+
+Die Prüfungen waren lesend und haben keine Daten geändert.
+
+### Aktuelle Advisor-Nachkontrolle (DEV)
+
+- Security Advisor: 18 Warnungen zu `SECURITY DEFINER`-Funktionen, die `authenticated` ausführen darf; die Funktionen müssen jeweils anhand ihrer Autorisierungslogik bewertet werden. Nicht pauschal widerrufen.
+- Security Advisor: 1 Warnung für deaktivierten Schutz gegen bekannte kompromittierte Passwörter; im aktuellen Tarif laut bisheriger Projektprüfung nicht verfügbar.
+- Performance Advisor: 15 Hinweise auf nicht abgedeckte Fremdschlüssel-Indizes, 15 Hinweise zu RLS-Policies mit wiederholt ausgewerteten Auth-Ausdrücken und 2 ungenutzte Indizes. Diese sind Performance-Arbeit, keine nachgewiesenen Sicherheitslücken; Änderungen sind nicht Teil dieses AP03-Sicherheitsnachlaufs.
+
+### Repository-Bereinigung
+
+Die Datei `supabase/migrations/20261026221800_ap03_set_updated_at_search_path_hardening_dev.sql` enthielt denselben einzelnen ALTER-FUNCTION-Befehl wie die kanonische, registrierte Migration `20261026221728_ap03_set_updated_at_search_path_hardening.sql`, war aber nicht als eigene Migration in Supabase registriert. Die redundante Datei wurde ausschließlich aus dem Branch `feature/ap03-security-fixes` entfernt. Die registrierte Migration und Datenbank wurden dabei nicht verändert.
+
+### Weiterhin offen / Grenzen
+
+- Historische Migrationsdateien lassen sich aus den gelieferten Unterlagen nicht für jede registrierte Version eindeutig bytegenau rekonstruieren. Keine SQL-Datei wurde aus einem Entwurf rekonstruiert oder erneut ausgeführt.
+- Vollständiger manueller UI-End-to-End-Test nach den letzten ACL-Änderungen bleibt offen.
+- Positiver Insert-/Update-Test aktiver Spielerzuordnungen bleibt NICHT AUSGEFÜHRT.
+- Cross-Club-/Cross-Team-Isolation kann mangels zweiter unabhängiger Testorganisation/-mannschaft nicht belastbar nachgewiesen werden.
+- Die 18 `SECURITY DEFINER`-Warnungen bleiben gezielt zu prüfen.
+
+### Status
+
+Die fünf nächsten Arbeitsschritte wurden soweit mit lesenden Prüfungen und einer klar belegten Bereinigung möglich ausgeführt. AP03 bleibt NICHT freigegeben. Kein Merge und keine PROD-Änderung.
