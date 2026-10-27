@@ -734,3 +734,32 @@ Die erste Restlisten-Prüfung hat einen priorisierten Befund ergeben. Es wurden 
 - RLS: auf allen 25 Tabellen aktiviert; 77 Policies, alle für authenticated.
 - Keine neuen Berechtigungsänderungen in dieser Prüfrunde.
 - Nächster Schritt: tatsächliche effektive ACLs und PUBLIC-Grants mit has_table_privilege und aclexplode auflösen und danach eine einzige gebündelte Korrekturliste erstellen. Keine Änderungen an PROD.
+
+
+## 14. Gebündelte DEV-Korrektur nach ACL-Befund (27.10.2026)
+
+Auf Basis der effektiven Rechteabfrage wurden zwei gezielte Migrationen in DEV angewendet und im Feature-Branch als SQL-Dateien dokumentiert. PROD wurde nicht verändert.
+
+### 14.1 Anonyme Tabellenrechte und TRUNCATE
+
+Migration: 20261027051456 / ap03_revoke_anon_table_access_and_truncate_dev
+
+- `REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon`
+- `REVOKE TRUNCATE ON ALL TABLES IN SCHEMA public FROM authenticated`
+- Nachkontrolle mit `has_table_privilege`: keine der 25 geprüften öffentlichen Tabellen hat noch SELECT, INSERT, UPDATE, DELETE oder TRUNCATE für `anon`; `authenticated` hat auf keiner der geprüften Tabellen TRUNCATE.
+- Die Korrektur passt zum aktuellen Policy-Bestand: keine RLS-Policy für anon, alle 77 gefundenen Policies sind für authenticated. Für authentifizierte Nutzer wurden die üblichen CRUD-Rechte nicht pauschal entzogen.
+
+### 14.2 Direkte EXECUTE-Rechte auf Triggerfunktionen
+
+Migration: 20261027051509 / ap03_restrict_trigger_function_execute_dev
+
+- Direkte EXECUTE-Rechte auf `protect_player_active_status()` und `require_active_player_for_new_assignment()` wurden für PUBLIC, anon und authenticated entzogen.
+- Nachkontrolle: beide Funktionen haben weiterhin aktive Triggerbindungen (1 bzw. 4 Trigger); `log_team_role_change()` hat weiterhin zwei Triggerbindungen. Direkte EXECUTE-Rechte für anon/authenticated sind bei allen drei Triggerfunktionen entzogen.
+- Die Trigger bleiben registriert. Ein vollständiger funktionaler End-to-End-Test nach dieser Rechteänderung ist noch Teil der Regressionrunde; die Katalogkontrolle allein ist kein Ersatz dafür.
+
+### 14.3 Reststatus
+
+- Security Advisor: weiterhin 18 Hinweise zu SECURITY DEFINER-Funktionen, die authenticated direkt aufrufen kann. Diese müssen nach Aufrufzweck und serverseitiger Autorisierung einzeln bewertet werden; nicht pauschal sperren.
+- Historische AP01-/AP02-Migrationsdateien sind an den erwarteten Pfaden nicht auffindbar. Der vollständige Migrationsbestand kann noch nicht aus dem Feature-Branch reproduziert werden. Nicht rekonstruieren oder erneut anwenden, solange der Originalinhalt nicht aus einer verlässlichen Quelle vorliegt.
+- Cross-Club-/Cross-Team-Negativtests sind wegen fehlender zweiter Testentitäten weiterhin nicht ausführbar.
+- Die nächste Regressionrunde soll sich auf vorhandene Kernabläufe und Rollback-Tests konzentrieren; nach diesem Abschnitt keine weitere ACL-Änderung ohne zusammengefassten Befund.
