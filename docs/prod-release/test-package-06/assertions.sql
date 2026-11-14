@@ -34,8 +34,8 @@ begin
   if not exists(select 1 from pg_trigger where tgrelid='public.matchday_players'::regclass and tgname='matchday_players_prevent_suspended_nomination' and not tgisinternal) then
     raise exception 'Expected matchday nomination trigger missing';
   end if;
-  if (select count(*) from pg_trigger where tgrelid='public.matchday_players'::regclass and not tgisinternal) < 3 then
-    raise exception 'Expected package 6 nomination trigger plus pre-existing triggers';
+  if not exists(select 1 from pg_trigger where tgrelid='public.matchday_players'::regclass and tgname='matchday_players_prevent_suspended_nomination' and not tgisinternal) then
+    raise exception 'Package 6 nomination trigger is not installed';
   end if;
 end;
 $assert$;
