@@ -775,3 +775,12 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - Keine fachlichen Datensätze verändert oder angelegt (0 Ausnahmen, 0 Sperren, 0 Audit-Einträge).
 - Ausführungsdossier: `docs/prod-release/E05_PROD_PAKET_05_SPIELTAGSAUSNAHMEN_2026-11-14.md`.
 - Funktionaler End-to-End-Praxistest der Ausnahmeerteilung steht noch aus.
+
+### E05 PROD Paket 6 – Atomarer Ausnahme-Widerruf vorbereitet
+
+- Status: Freigabekandidat in `develop`; noch nicht ausgeführt.
+- DEV-Quelle: `docs/E05_SQL_ENTWURF_WIDERRUF_AUSNAHME_MIT_NOMINIERUNGSENTFERNUNG_2026-11-12.sql`, DEV-Ausführung 13.11.2026.
+- PROD-Abweichung: Der Sperr-Nominierungsschutz-Trigger fehlt in PROD nach Paket 5 und wird im Paket 6 ergänzt.
+- Migration/Rollback/Assertions/Workflow liegen unter `supabase/migrations/`, `supabase/rollback/`, `docs/prod-release/test-package-06/` und `.github/workflows/e05-prod-package-06-ci.yml`.
+- Isolierter PostgreSQL-17.6-CI-Lauf [43638965684](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43638965684) erfolgreich, einschließlich guarded Rollback.
+- Keine DEV-/PROD-Ausführung; GitHub `main` unverändert.
