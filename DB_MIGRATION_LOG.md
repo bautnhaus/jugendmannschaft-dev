@@ -1042,3 +1042,16 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Fachliche Grenze:** Paket 3 aktiviert automatische Sperrenauslösung, ist jedoch kein vollständiger Trainerworkflow. Spieltagszuordnung, Ausnahmen, Korrektur und finale Trainingsdatum-Chronologie liegen in späteren separat freizugebenden Paketen.
 - **Freigabe:** technische Prüfung abgeschlossen; ausdrückliche Nutzerfreigabe zur PROD-Ausführung steht aus. Unmittelbarer Preflight/Hash-Abgleich erfolgt erst nach Freigabe.
 - **Backup/PITR:** Status wurde nicht unabhängig geprüft; vor Ausführung muss ein geeigneter Wiederherstellungspunkt gemäß Betriebsprozess bestätigt werden.
+
+
+### DB-MIG-2026-014 – E05 PROD Paket 3: Sperrenfundament
+
+- **Ausgeführt:** 14.11.2026 in Supabase PROD.
+- **Supabase-Migration:** Version `20261114174854`, Name `e05_prod_paket_03_suspension_foundation_20261114`.
+- **SQL-Datei:** `supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql`, Blob-SHA `7f519980342bcde70379d884144a231a864a9de2`.
+- **Ergebnis:** erfolgreich; Sperren- und Audit-Tabellen vorhanden, RLS aktiv, je eine Policy, 4/2 Indizes, Audit-Guard und zwei Audit-Trigger vorhanden.
+- **Rechte:** authenticated SELECT auf Sperren, kein direkter INSERT; anon kein SELECT; Paket-2-RPC EXECUTE nur für authenticated, nicht anon/service_role.
+- **Datenbestand nach Ausführung:** 0 Sperren, 0 Sperren-Audit-Einträge.
+- **Backup/PITR:** unter Supabase Free nicht unabhängig bestätigt; als dokumentierte Plan-Einschränkung behandelt, kein Release-Blocker.
+- **Rollback:** nicht ausgeführt.
+- **Vollständige Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_03_SPERRFUNDAMENT_2026-11-14.md`.
