@@ -62,7 +62,7 @@ end;
 $preflight$;
 
 
-begin;
+
 
 
 create table public.club_suspension_settings (
