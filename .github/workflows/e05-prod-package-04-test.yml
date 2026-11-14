@@ -1,0 +1,56 @@
+name: E05 PROD Paket 4 – isolated PostgreSQL validation
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql'
+      - 'supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql'
+      - 'docs/prod-release/test-package-04/**'
+      - '.github/workflows/e05-prod-package-04-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  postgres-17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: e05_package_04_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d e05_package_04_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: e05_package_04_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Prepare package 1–3 baseline
+        run: |
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-01/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-02/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-03/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql
+      - name: Prepare club and selected-context fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-04/bootstrap.sql
+      - name: Apply exact PROD package 4 SQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql
+      - name: Verify package 4 structure, ACLs and RPC behavior
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-04/assertions.sql
+      - name: Verify guarded rollback
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql
+          psql -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF to_regclass('public.club_suspension_settings') IS NOT NULL OR to_regclass('public.team_suspension_game_type_settings') IS NOT NULL OR to_regclass('public.team_suspension_game_types') IS NOT NULL THEN RAISE EXCEPTION 'Package 4 tables remain after rollback'; END IF; IF to_regprocedure('public.serve_matchday_suspensions(uuid)') IS NOT NULL THEN RAISE EXCEPTION 'Package 4 RPC remains after rollback'; END IF; END \\$\\$;"
