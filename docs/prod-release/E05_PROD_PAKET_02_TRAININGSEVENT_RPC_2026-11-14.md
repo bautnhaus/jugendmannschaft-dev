@@ -196,3 +196,8 @@ Der guarded Rollback wurde ausschließlich isoliert getestet. In PROD wurde kein
 - Paket 3 bleibt eigenständig und freigabepflichtig.
 
 **Abschlussstatus:** Paket 2 erfolgreich in PROD ausgeführt, in der Migrationshistorie registriert und read-only nachkontrolliert.
+
+
+### Zusätzliche Ausführungssicherung
+
+Nach erfolgreicher Migration wurde ein erneuter identischer Ausführungsaufruf abgewiesen, weil das Vorbedingungs-Gate die bereits vorhandene RPC erkannt hat (`E05 PROD Paket 2 abgebrochen: RPC existiert bereits; Zustand prüfen`). Der zweite Aufruf hat vor einer DDL-Änderung abgebrochen; es wurde keine zweite Funktionsänderung vorgenommen. Die Migrationshistorie enthält genau einen Eintrag für Paket 2.
