@@ -1,0 +1,99 @@
+# KADAssist / E05 – PROD Release Paket 4
+## Spieltagszuordnung und Ableistung von Sperren
+
+- Ziel: Supabase PROD `qdugtpzgefpswnnqbusd` | DEV: `pzazqvvoruqnqhcorbwx`
+- Branch: `develop` only. Not executed in PROD.
+- Status: prepared; CI and final review pending. Explicit PROD approval still required.
+
+## 1. DEV source and acceptance evidence
+
+- Source SQL: `docs/E05_PAKET_04_SPIELTAG_ZUORDNUNG_UND_ABLEISTUNG_2026-11-08.sql`, blob `d4722150eba7a6894ebabc032ff9af8dcd2fbcf7`.
+- DEV execution and acceptance record: `docs/E05_PAKET_04_FREIGABE_UND_AUSFUEHRUNG_2026-11-08.md`, blob `9f6c00f80ce1414edcb9a82d076c41fa32d517b5`.
+- DEV migration: `20261108133922 e05_package_04_suspension_matchday_lifecycle`.
+- DEV record reports successful table/RLS/policy/ACL checks and functional tests for club/team game-type settings, yellow-before-red assignment, one suspension per player per matchday, serving only on a relevant matchday with status `done`, reassignment after serving, rejection of irrelevant game type and unauthorized team role. Functional test data was synthetic and rolled back.
+
+## 2. Scope
+
+Three configuration tables:
+- `club_suspension_settings`
+- `team_suspension_game_type_settings`
+- `team_suspension_game_types`
+
+Four RPCs:
+- `set_club_suspension_game_types(uuid,text[])`
+- `set_team_suspension_game_types(uuid,boolean,text[])`
+- `assign_next_suspension_matchday(uuid,uuid)`
+- `serve_matchday_suspensions(uuid)`
+
+Internal helper: `e05_assign_player_suspensions(uuid,uuid,uuid)`, not executable by API roles.
+
+Rules:
+1. A team override fully replaces the club default.
+2. Without an override, the club default applies.
+3. An explicit empty team override means no game type is relevant.
+4. No club setting means no game type is silently assumed relevant.
+5. Allowed values: `Meisterschaft`, `Freundschaftsspiel`, `Turnier`.
+6. Only open suspensions in the same team/season are assigned to future planned matchdays of a relevant type.
+7. Yellow suspensions precede red; at most one suspension per player per matchday.
+8. A suspension is served only after the assigned matchday is actually `done` and relevant. The operation is audited; remaining open suspensions are reassigned.
+
+## 3. PROD read-only preflight – 14.11.2026
+
+Confirmed in PROD:
+- Packages 1–3 registered; package 3 migration version `20261114174854`.
+- `clubs`, `teams`, `matchdays`, `team_member_roles`, `user_club_context`, `training_suspensions`, `training_suspension_audit` exist.
+- Required fields exist, including `teams.club_id`, matchday `season_id/match_date/game_type/status`, suspension `intended_matchday_id/served_matchday_id`.
+- Context helpers `is_team_member(uuid)`, `has_selected_team_context(uuid)`, `can_manage_club_context(uuid)` exist, are SECURITY DEFINER with fixed search_path, and are executable by authenticated but not anon.
+- Package 4 config tables and RPCs do not exist yet.
+- Package 5+ functions/tables checked in DEV are not installed in PROD.
+- PROD currently has 1 club, 1 team, 0 suspension rows and 0 suspension audit rows.
+- DEV migration history contains package 4; PROD history currently contains packages 1–3 only.
+
+## 4. Release artefacts
+
+1. Migration: `supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql`
+2. Guarded rollback: `supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql`
+3. Read-only verification: `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14_TESTQUERIES.sql`
+4. Isolated test fixture: `docs/prod-release/test-package-04/`
+5. CI workflow: `.github/workflows/e05-prod-package-04-test.yml`
+
+Migration has a transaction-scoped preflight. It aborts if package-3 prerequisites or context helpers are missing, package-4 objects already exist, package-5+ objects are present, or expected columns are missing.
+
+Rollback uses no CASCADE. It aborts if suspensions reference matchdays, if package-4 configuration contains data, or if package-5+ objects/functions are installed. It drops only package-4 functions/tables. It does not remove the Supabase migration-history entry.
+
+## 5. CI scope and limitations
+
+The isolated PostgreSQL 17.6 workflow rebuilds package 1–3 baseline, applies the exact PROD package-4 SQL, and checks:
+- structure, RLS, policies, direct table privileges and RPC ACLs;
+- club default, team override, restoring club defaults when override is disabled;
+- explicit empty team override;
+- no-op assignment/serving RPC behavior when no open suspension exists;
+- guarded rollback and removal of package-4 objects.
+
+This CI fixture does not connect to Supabase PROD or DEV. It does not replace the full DEV functional test record, nor does it re-run every scenario with persisted matchday/suspension fixture rows.
+
+## 6. Explicit exclusions
+
+Not part of package 4:
+- frontend/app automatic invocation of `serve_matchday_suspensions` when matchday status becomes `done`;
+- club settings UI and its end-to-end test;
+- exceptions, season closure, early suspension reset, manual correction, event correction/void/restore.
+These remain separate follow-up packages.
+
+## 7. Approval checklist
+
+- [x] DEV source SQL and execution/acceptance record found.
+- [x] PROD packages 1–3 and prerequisite schema checked read-only.
+- [x] Guarded PROD migration created.
+- [x] Guarded rollback created.
+- [x] Read-only verification SQL created.
+- [x] Isolated PostgreSQL 17.6 fixture and CI workflow created.
+- [ ] CI successful and reviewed.
+- [ ] Final SQL/rollback review after CI.
+- [ ] User's explicit PROD execution approval.
+- [ ] Immediate PROD preflight/hash check.
+- [ ] PROD migration executed.
+- [ ] Read-only post-check passed.
+- [ ] Migration journal and execution record updated.
+
+**Current state: release candidate prepared, not executed in PROD.**
