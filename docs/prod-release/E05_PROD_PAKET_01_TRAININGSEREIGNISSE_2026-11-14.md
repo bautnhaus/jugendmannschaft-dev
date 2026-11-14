@@ -1,7 +1,7 @@
 # KADAssist / E05 – PROD Release Paket 1
 ## Trainingsereignisse und Ereignis-Audit
 
-- **Status:** Release-Entwurf erstellt – NICHT AUSFÜHREN
+- **Status:** ERFOLGREICH IN PROD AUSGEFÜHRT und read-only nachkontrolliert am 14.11.2026
 - **Zielumgebung:** Supabase PROD
 - **Projekt-ID:** `qdugtpzgefpswnnqbusd`
 - **Vorbereitung:** 14.11.2026
@@ -126,13 +126,13 @@ Es wurde kein Rollback ausgeführt oder getestet. Dieser Abschnitt ist ein Wiede
 - [x] PROD-Hilfsfunktionen und Ausführungskontext geprüft
 - [x] PROD-spezifisches Vorbedingungs-Gate ergänzt
 - [x] Release-SQL-Entwurf erstellt
-- [ ] SQL in einer isolierten PostgreSQL-Prüfumgebung ausgeführt/geparst
+- [x] SQL in einer isolierten PostgreSQL-17.6-Prüfumgebung ausgeführt/geparst
 - [x] Guarded Rollback in isolierter PostgreSQL-Umgebung ausführbar verifiziert (inkl. Daten- und Abhängigkeits-Schutz)
-- [ ] Finale fachliche/technische PROD-Freigabe erteilt
-- [ ] In PROD ausgeführt
-- [ ] Nachkontrollen bestanden und protokolliert
+- [x] Finale fachliche/technische PROD-Freigabe erteilt
+- [x] In PROD ausgeführt
+- [x] Nachkontrollen bestanden und protokolliert
 
-**Aktueller Status: vorbereitet, aber noch nicht ausführungsbereit und nicht freigegeben.**
+**Historischer Vorbereitungsstatus – durch Abschnitt 13 vollständig überholt. Paket 1 wurde nach ausdrücklicher Nutzerfreigabe erfolgreich in PROD ausgeführt.**
 
 Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` wurde durch diese Vorbereitung vorgenommen. Die beiden neuen Dokumente liegen ausschließlich auf GitHub `develop`.
 
@@ -220,3 +220,15 @@ Die Migration `20261114162646` ist in der PROD-Migrationshistorie sichtbar.
 Ein separater Status des Supabase-Backups bzw. PITR konnte über die in dieser Sitzung verfügbaren Projektwerkzeuge nicht unabhängig ausgelesen werden. Es wird daher kein Backup-Status als geprüft oder bestätigt ausgewiesen. Der erfolgreiche isolierte CI-Rollback-Test ersetzt keinen PROD-Backup-Nachweis.
 
 **Abschlussstatus:** Paket 1 erfolgreich in PROD ausgeführt und read-only verifiziert. Supabase DEV und GitHub `main` wurden nicht verändert. Nachfolgende E05-Pakete bleiben einzeln freigabepflichtig.
+
+
+## 14. Dokumentationsabschluss und unveränderlicher SQL-Nachweis
+
+- **Tatsächlich an Supabase übergebener SQL-Inhalt:** Git-Blob `6f39812500ac8ce427d3330a8281af941b259b90`. Der Blob wurde über die GitHub-Git-Blob-API erneut abgerufen und sein Inhalt geprüft. Er enthält den damaligen Kopfstatus „RELEASE-ENTWURF – NICHT AUSFÜHREN OHNE SEPARATE FREIGABE“ sowie das vollständige, in Abschnitt 13 bezeichnete DDL.
+- **Spätere Änderung am sichtbaren Release-SQL-Dateikopf:** Der aktuelle Pfad trägt inzwischen einen Statuskommentar zur erfolgreichen Ausführung. Die fachlichen DDL-Anweisungen sind unverändert; der aktuelle Dateiblob ist daher nicht der historische Blob des ausgeführten Inhalts. Für die exakte Ausführungsreferenz ist ausschließlich der oben genannte historische Blob-SHA maßgeblich.
+- **Isolierter PostgreSQL-Test:** GitHub Actions Run [43615149537](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43615149537), erfolgreich; Erstellung, Sicherheits-/RLS-/ACL-Prüfungen, Audit-Schutz, Daten-/Abhängigkeits-Gates und sauberer Rollback bestanden.
+- **PROD-Ausführung:** Supabase-Migration `20261114162646`, Name `e05_prod_paket_01_trainingsereignisse_20261114`, Supabase meldete `success: true`; Migrationseintrag in PROD-Historie bestätigt.
+- **PROD-Nachkontrolle:** Tabellen, Audit-Guard, RLS, Policies, Indizes, Trigger, Rollenrechte und leere Tabellen read-only bestätigt.
+- **Backup/PITR:** Kein unabhängiger Backup-/PITR-Nachweis über die verfügbaren Projektwerkzeuge. Dies bleibt ausdrücklich eine Nachweisgrenze.
+
+**Dokumentationsbewertung:** Paket 1 besitzt nun einen nachvollziehbaren Ausführungsnachweis, einen unveränderlichen Verweis auf den tatsächlich ausgeführten SQL-Blob, einen isolierten CI-Testnachweis, einen Rollback-Testnachweis, die Supabase-Migrationskennung und die PROD-Nachkontrolle. Ein PROD-Rollback wurde nicht ausgeführt.
