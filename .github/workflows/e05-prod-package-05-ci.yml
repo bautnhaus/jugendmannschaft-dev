@@ -1,5 +1,7 @@
 name: E05 PROD Package 5 isolated PostgreSQL CI
 
+# Reusable isolated migration + rollback test; no Supabase project is contacted.
+
 on:
   push:
     branches: [develop]
