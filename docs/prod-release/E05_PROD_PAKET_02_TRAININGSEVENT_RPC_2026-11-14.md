@@ -1,7 +1,7 @@
 # KADAssist / E05 – PROD Release Paket 2
 ## Trainingsereignis vergeben (RPC)
 
-- **Status:** Release-Kandidat – noch nicht freigegeben und nicht in PROD ausgeführt
+- **Status:** ERFOLGREICH IN PROD AUSGEFÜHRT und read-only nachkontrolliert am 14.11.2026
 - **Zielumgebung:** Supabase PROD
 - **Projekt-ID:** `qdugtpzgefpswnnqbusd`
 - **Vorbereitung:** 14.11.2026
@@ -115,7 +115,7 @@ Es wird kein `CASCADE` verwendet. Tabellen und Ereignisdaten bleiben unangetaste
 - Assertions: SECURITY DEFINER, fester search_path, EXECUTE-ACL, Positivpfad, atomarer Audit-Eintrag, Karte+Stern, Duplikatkarte, fehlende Anwesenheit, abgesagtes Training, fehlender Kartengrund und fehlende Teamrolle.
 - Zusätzlich wird der guarded Rollback vor Paket 3 ausgeführt.
 
-**CI-Status:** Der Workflow ist angelegt und der erste Lauf wird nach Abschluss der Workflow-Ausführung hier mit Run-ID und Ergebnis ergänzt. Bis ein grüner Lauf auf dem finalen SQL-/Test-Commit verifiziert ist, bleibt die technische Freigabeschranke offen.
+**CI-Status:** Erfolgreich. GitHub Actions Run [43616072353](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43616072353), Commit `55ce57043b5cde66a186845ad0ea00f4b2143015`. Alle Schritte grün: PostgreSQL 17.6, Paket-1-Fixture, exaktes Paket-2-SQL, RPC-Sicherheits-/Funktions-/Audit-/Negativtests und guarded Rollback vor Paket 3. Der Test war vollständig isoliert und stellte keine Verbindung zu Supabase DEV oder PROD her.
 
 ## 9. Freigabe- und Ausführungscheckliste
 
@@ -127,12 +127,12 @@ Es wird kein `CASCADE` verwendet. Tabellen und Ereignisdaten bleiben unangetaste
 - [x] Rollback mit Abhängigkeits-Gate erstellt
 - [x] Isolierter PostgreSQL-17.6-Testlauf erfolgreich und verifiziert
 - [x] CI-Nachweis in diesem Dokument ergänzt
-- [ ] Finale Freigabe durch Nutzer
-- [ ] Unmittelbare PROD-Vorprüfung und SQL-Hash-Abgleich
-- [ ] In PROD ausgeführt
-- [ ] Nachkontrollen bestanden und protokolliert
+- [x] Finale Freigabe durch Nutzer am 14.11.2026
+- [x] Unmittelbare PROD-Vorprüfung und SQL-Hash-Abgleich
+- [x] In PROD ausgeführt
+- [x] Nachkontrollen bestanden und protokolliert
 
-**Aktueller Status: vorbereitet; noch nicht zur Ausführung freigegeben.** Keine SQL-Ausführung in Supabase DEV oder PROD durch diese Vorbereitung. GitHub `main` unverändert.
+**Historischer Vorbereitungsstatus – durch Abschnitt 11 überholt. Paket 2 wurde nach ausdrücklicher Nutzerfreigabe erfolgreich in PROD ausgeführt.**
 
 
 ## 10. Technischer Abschluss der Vorbereitung
@@ -145,4 +145,54 @@ GitHub-Referenzen auf `develop`:
 - CI-Test: `docs/prod-release/test-package-02/`
 - Workflow: `.github/workflows/e05-prod-package-02-test.yml`
 
-**Freigabestatus:** technisch validierter Release-Kandidat. Die Migration wurde nicht in Supabase ausgeführt. Für die Ausführung sind weiterhin die ausdrückliche Nutzerfreigabe und die unmittelbar vorherige read-only PROD-Vorprüfung erforderlich.
+**Freigabestatus:** technisch validierter Release-Kandidat; nach ausdrücklicher Nutzerfreigabe anschließend am 14.11.2026 in Supabase PROD ausgeführt. Die Ausführungsdetails stehen in Abschnitt 11.
+
+
+## 11. Verbindlicher PROD-Ausführungsnachweis – 14.11.2026
+
+### Freigabe und Ausführung
+
+- **Freigabe:** ausdrückliche Nutzerfreigabe im Chat am 14.11.2026.
+- **Zielprojekt:** Supabase PROD `qdugtpzgefpswnnqbusd`, PostgreSQL 17.6.
+- **Unmittelbare Vorprüfung:** bestanden. Paket-1-Ereignistabelle und Audit-Tabelle vorhanden; Paket-2-RPC fehlte; Paket-3-Sperrentabellen fehlten; alle erforderlichen Bestandsobjekte und Helper waren vorhanden.
+- **Ausführungsweg:** Supabase `apply_migration`.
+- **Migration:** `20261114165213` – `e05_prod_paket_02_trainingsevent_rpc_20261114`.
+- **Zeit:** 14.11.2026, 17:52:13 CET (aus der Supabase-Migrationsversion abgeleitet).
+- **Supabase-Ergebnis:** `success: true`.
+- **Ausgeführter SQL-Git-Blob:** `bea5a140587a1e9cee4f49504e7bf983283bdda9` (Release-SQL vor Ausführung aus `develop` abgerufen und unverändert an die Migration übergeben).
+
+### Read-only Nachkontrolle
+
+| Prüfpunkt | Ergebnis |
+|---|---|
+| RPC `award_training_behavior_event(uuid,uuid,text,text)` vorhanden | Ja |
+| Owner | `postgres` |
+| SECURITY DEFINER | Ja |
+| Fester search_path | `pg_catalog, public, auth` |
+| EXECUTE `authenticated` | Ja |
+| EXECUTE `anon` | Nein |
+| EXECUTE `service_role` | Nein |
+| EXECUTE `PUBLIC` | Nein |
+| Sperrenlogik aus Paket 3 in der Funktion enthalten | Nein |
+| Neue Ereignisdatensätze während der Migration | 0 |
+| Neue Auditdatensätze während der Migration | 0 |
+
+Die Migration ist in der PROD-Migrationshistorie registriert. Die Funktionsdefinition wurde nach der Ausführung aus dem PROD-Katalog gelesen. Sie entspricht dem Paket-2-Umfang und enthält keine Sperrenauslösung.
+
+### Isolierter Testnachweis
+
+GitHub Actions Run [43616072353](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43616072353) erfolgreich. Paket-2-SQL, Sicherheits-/ACL-Assertions, Positiv-/Negativtests und guarded Rollback wurden auf einem temporären PostgreSQL-17.6-Dienst ausgeführt.
+
+### Rollback-/Recovery-Grenze
+
+Der guarded Rollback wurde ausschließlich isoliert getestet. In PROD wurde kein Rollback ausgeführt. Das Rollback ist nur vor Paket 3 zulässig. Backup-/PITR-Status wurde für diesen Lauf nicht unabhängig ausgelesen und wird daher nicht als geprüft bestätigt.
+
+### Änderungsgrenzen
+
+- Supabase PROD: ausschließlich Paket-2-RPC ergänzt.
+- Supabase DEV: unverändert.
+- GitHub `main`: unverändert.
+- Bestehende Tabellen, Rollen, Policies und fachliche Datensätze: durch dieses Paket nicht geändert.
+- Paket 3 bleibt eigenständig und freigabepflichtig.
+
+**Abschlussstatus:** Paket 2 erfolgreich in PROD ausgeführt, in der Migrationshistorie registriert und read-only nachkontrolliert.
