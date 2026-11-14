@@ -73,3 +73,15 @@ Die ursprünglichen DEV-Migrationsdateien wurden anhand ihrer registrierten Vers
 ## 9. Ergänzende Audit-Abweichung gegenüber PROD
 
 Der erneute Schemaabgleich hat eine bislang nicht dokumentierte Paket-4/5-Abweichung sichtbar gemacht: In PROD ist `training_suspension_audit.suspension_id` noch NOT NULL; `exception_id` und `changed_by_snapshot` fehlen. Der DEV-Live-Stand erlaubt genau einen Bezug je Audit-Zeile (Sperre oder Ausnahme). Ohne diese Anpassung würde die Grant-RPC beim Schreiben des Ausnahme-Audits in PROD scheitern. Paket 5 enthält daher die notwendige, eng begrenzte Audit-Schema- und Policy-Erweiterung. Der Rollback stellt die bisherige Policy und NOT-NULL-Eigenschaft wieder her und bricht ab, sobald Ausnahme-Auditdaten existieren.
+
+
+## 10. Isolierter PostgreSQL-CI-Test – vorbereitet, Ausführung noch nicht bestätigt
+
+Für Paket 5 wurde ein eigener GitHub-Actions-Workflow ergänzt:
+- `.github/workflows/e05-prod-package-05-ci.yml`
+- `docs/prod-release/test-package-05/assertions.sql`
+- `docs/prod-release/test-package-05/rollback_assertions.sql`
+
+Der Workflow baut eine frische PostgreSQL-17.6-Testdatenbank auf, stellt die dokumentierten Paket-1–4-Baselines her, führt die exakte Paket-5-Migration aus, prüft Tabellen/RLS/ACL/RPC/search_path/Indizes/Audit-Linkage und Append-only-Trigger und führt anschließend den guarded Rollback samt Assertions aus.
+
+**Wichtige Statusgrenze:** Die Workflow-Datei und Assertions liegen auf `develop`. Über die hier verfügbaren GitHub-Actions-Funktionen konnte ich für die Commits `fb13a5e384f5eced0ca980fda45e0eebee4a5baf` und `b3b00f6115af88c961abe8ddcf0d57e5bb970ad2` keinen gestarteten Workflow-Lauf oder Status abrufen (Combined Status leer; die vorhandene Run-Abfrage liefert nur PR-Workflows). Deshalb wird kein erfolgreicher CI-Lauf behauptet und Paket 5 bleibt bis zur sichtbaren grünen Workflow-Ausführung **nicht freigabefertig**.
