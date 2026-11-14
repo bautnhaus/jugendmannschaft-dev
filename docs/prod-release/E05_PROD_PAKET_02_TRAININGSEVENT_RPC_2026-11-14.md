@@ -125,11 +125,24 @@ Es wird kein `CASCADE` verwendet. Tabellen und Ereignisdaten bleiben unangetaste
 - [x] PROD-Bestandsobjekte und erforderliche Spalten read-only geprüft
 - [x] PROD-Vorbedingungs-Gate erstellt
 - [x] Rollback mit Abhängigkeits-Gate erstellt
-- [ ] Isolierter PostgreSQL-17.6-Testlauf erfolgreich und verifiziert
-- [ ] CI-Nachweis in diesem Dokument ergänzt
+- [x] Isolierter PostgreSQL-17.6-Testlauf erfolgreich und verifiziert
+- [x] CI-Nachweis in diesem Dokument ergänzt
 - [ ] Finale Freigabe durch Nutzer
 - [ ] Unmittelbare PROD-Vorprüfung und SQL-Hash-Abgleich
 - [ ] In PROD ausgeführt
 - [ ] Nachkontrollen bestanden und protokolliert
 
 **Aktueller Status: vorbereitet; noch nicht zur Ausführung freigegeben.** Keine SQL-Ausführung in Supabase DEV oder PROD durch diese Vorbereitung. GitHub `main` unverändert.
+
+
+## 10. Technischer Abschluss der Vorbereitung
+
+Die drei Release-Artefakte und der isolierte PostgreSQL-Test sind vollständig vorbereitet. Der CI-Lauf hat die konkrete Paket-2-RPC einschließlich der Paket-1-Abhängigkeit erfolgreich ausgeführt und anschließend den Rückbau vor Paket 3 geprüft.
+
+GitHub-Referenzen auf `develop`:
+- PROD-SQL: `docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14.sql`
+- Rollback: `docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14_ROLLBACK.sql`
+- CI-Test: `docs/prod-release/test-package-02/`
+- Workflow: `.github/workflows/e05-prod-package-02-test.yml`
+
+**Freigabestatus:** technisch validierter Release-Kandidat. Die Migration wurde nicht in Supabase ausgeführt. Für die Ausführung sind weiterhin die ausdrückliche Nutzerfreigabe und die unmittelbar vorherige read-only PROD-Vorprüfung erforderlich.
