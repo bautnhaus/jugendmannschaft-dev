@@ -40,6 +40,11 @@ begin
  if (select count(*) from pg_trigger where tgrelid='public.training_suspension_audit'::regclass and not tgisinternal)<>2 then
    raise exception 'Expected two append-only audit triggers';
  end if;
+ if has_function_privilege('authenticated','public.e05_reject_suspension_audit_mutation()','EXECUTE')
+    or has_function_privilege('anon','public.e05_reject_suspension_audit_mutation()','EXECUTE')
+    or has_function_privilege('service_role','public.e05_reject_suspension_audit_mutation()','EXECUTE') then
+   raise exception 'Audit trigger function is directly executable by API roles';
+ end if;
 end;
 $assert$;
 
@@ -92,6 +97,12 @@ begin
  join public.training_suspensions s on s.id=sa.suspension_id
  where s.player_id=v_yellow_player and sa.action='created';
  if v_count<>1 then raise exception 'Yellow suspension audit missing/duplicated'; end if;
+ begin
+   update public.training_suspension_audit set reason='tamper' where suspension_id in
+     (select id from public.training_suspensions where player_id=v_yellow_player);
+   raise exception 'Append-only audit accepted UPDATE';
+ exception when object_not_in_prerequisite_state then null;
+ end;
 
  -- Red card creates exactly one red suspension with matching source event.
  v_training:=gen_random_uuid();
