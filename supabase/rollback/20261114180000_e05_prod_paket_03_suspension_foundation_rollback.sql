@@ -29,22 +29,26 @@ begin
      or to_regprocedure('public.cancel_early_suspension_reset(uuid,text)') is not null
      or to_regprocedure('public.prevent_suspended_matchday_nomination()') is not null
      or to_regprocedure('public.set_club_suspension_game_types(uuid,text[])') is not null
-     or to_regprocedure('public.set_team_suspension_game_types(uuid,text[])') is not null
+     or to_regprocedure('public.set_team_suspension_game_types(uuid,boolean,text[])') is not null
      or to_regprocedure('public.get_club_suspension_game_types(uuid)') is not null
      or to_regprocedure('public.get_team_suspension_game_type_settings(uuid)') is not null
      or to_regprocedure('public.close_team_season(uuid,text)') is not null
-     or to_regprocedure('public.e05_transition_early_reset()') is not null
+     or to_regprocedure('public.serve_matchday_suspensions(uuid)') is not null
+     or to_regprocedure('public.e05_reject_season_closure_audit_mutation()') is not null
+     or to_regprocedure('public.e05_reject_early_reset_audit_mutation()') is not null
+     or to_regprocedure('public.e05_transition_early_reset(uuid,text,text,uuid)') is not null
      or to_regprocedure('public.schedule_early_suspension_reset(uuid,uuid,text)') is not null
      or to_regprocedure('public.cancel_early_suspension_reset(uuid,text)') is not null
      or to_regprocedure('public.e05_cancel_early_reset_on_nomination()') is not null
      or to_regprocedure('public.e05_reconcile_early_resets_on_matchday_status()') is not null
-     or to_regprocedure('public.correct_training_behavior_event(uuid,uuid,text,text)') is not null
-     or to_regprocedure('public.correct_training_behavior_event(uuid,uuid,text)') is not null
+     or to_regprocedure('public.correct_training_behavior_event(uuid,text,text)') is not null
+     or to_regprocedure('public.e05_assert_suspension_correction_permission(uuid,uuid)') is not null
      or to_regclass('public.club_suspension_settings') is not null
      or to_regclass('public.team_suspension_game_type_settings') is not null
      or to_regclass('public.team_suspension_game_types') is not null
      or to_regclass('public.matchday_early_suspension_resets') is not null
      or to_regclass('public.matchday_early_suspension_reset_audit') is not null
+     or to_regclass('public.team_season_closure_audit') is not null
      or exists (
        select 1 from pg_trigger
        where not tgisinternal
