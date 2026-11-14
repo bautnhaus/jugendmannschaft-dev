@@ -75,7 +75,7 @@ Die ursprünglichen DEV-Migrationsdateien wurden anhand ihrer registrierten Vers
 Der erneute Schemaabgleich hat eine bislang nicht dokumentierte Paket-4/5-Abweichung sichtbar gemacht: In PROD ist `training_suspension_audit.suspension_id` noch NOT NULL; `exception_id` und `changed_by_snapshot` fehlen. Der DEV-Live-Stand erlaubt genau einen Bezug je Audit-Zeile (Sperre oder Ausnahme). Ohne diese Anpassung würde die Grant-RPC beim Schreiben des Ausnahme-Audits in PROD scheitern. Paket 5 enthält daher die notwendige, eng begrenzte Audit-Schema- und Policy-Erweiterung. Der Rollback stellt die bisherige Policy und NOT-NULL-Eigenschaft wieder her und bricht ab, sobald Ausnahme-Auditdaten existieren.
 
 
-## 10. Isolierter PostgreSQL-CI-Test – vorbereitet, Ausführung noch nicht bestätigt
+## 10. Isolierter PostgreSQL-CI-Test – erfolgreich abgeschlossen
 
 Für Paket 5 wurde ein eigener GitHub-Actions-Workflow ergänzt:
 - `.github/workflows/e05-prod-package-05-ci.yml`
@@ -84,4 +84,8 @@ Für Paket 5 wurde ein eigener GitHub-Actions-Workflow ergänzt:
 
 Der Workflow baut eine frische PostgreSQL-17.6-Testdatenbank auf, stellt die dokumentierten Paket-1–4-Baselines her, führt die exakte Paket-5-Migration aus, prüft Tabellen/RLS/ACL/RPC/search_path/Indizes/Audit-Linkage und Append-only-Trigger und führt anschließend den guarded Rollback samt Assertions aus.
 
-**Wichtige Statusgrenze:** Die Workflow-Datei und Assertions liegen auf `develop`. Über die hier verfügbaren GitHub-Actions-Funktionen konnte ich für die Commits `fb13a5e384f5eced0ca980fda45e0eebee4a5baf` und `b3b00f6115af88c961abe8ddcf0d57e5bb970ad2` keinen gestarteten Workflow-Lauf oder Status abrufen (Combined Status leer; die vorhandene Run-Abfrage liefert nur PR-Workflows). Deshalb wird kein erfolgreicher CI-Lauf behauptet und Paket 5 bleibt bis zur sichtbaren grünen Workflow-Ausführung **nicht freigabefertig**.
+**Ergebnis:** [GitHub Actions Run 43635963976](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43635963976), Commit `c899805befdcd5e6e5d4affc68f052ba47bdf969`, Status `success`. Alle Schritte erfolgreich: PostgreSQL 17.6 bereitgestellt, Paket-1–3-Baseline aufgebaut, Paket 4 angewendet und geprüft, Paket-5-Migration exakt ausgeführt, Struktur/RLS/ACL/RPC/search_path/Indizes/Audit-Linkage geprüft, guarded Rollback ausgeführt und Rollback-Assertions bestanden.
+
+**Fehlerkorrektur:** Der erste echte Testlauf zeigte einen Fehler in der Testhülle: Die zweite negative Audit-Prüfung erwartete eine Foreign-Key-Verletzung, tatsächlich greift die `training_suspension_audit_one_subject_check`-Constraint früher. Der Test wurde auf `check_violation` korrigiert und in einem neuen vollständigen Lauf erneut ausgeführt. Die Migration selbst war in beiden Läufen erfolgreich.
+
+**Testgrenze:** Der CI-Lauf prüft Schema, Berechtigungen, Audit-Constraints und den Rollback auf einer isolierten leeren PostgreSQL-17.6-Basis. Er ersetzt nicht den späteren DEV-/PROD-Praxistest der Grant-RPC mit realen Teammitgliedern, offenen Sperren und geplanten Spieltagen. Paket 5 ist damit technisch für die ausdrückliche PROD-Freigabe vorbereitet; noch nicht in PROD ausgeführt.
