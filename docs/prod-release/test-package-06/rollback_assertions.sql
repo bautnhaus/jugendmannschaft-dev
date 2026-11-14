@@ -1,20 +1,17 @@
 \set ON_ERROR_STOP on
 do $assert$
-declare v_def text;
 begin
- if to_regprocedure('public.revoke_suspension_exception(uuid,text)') is null then
-   raise exception 'Rollback removed revoke RPC unexpectedly';
+ if to_regprocedure('public.revoke_suspension_exception(uuid,text)') is not null then
+   raise exception 'Rollback left revoke RPC behind';
  end if;
- select pg_get_functiondef('public.revoke_suspension_exception(uuid,text)'::regprocedure) into v_def;
- if position('pg_advisory_xact_lock' in v_def)>0 then
-   raise exception 'Rollback did not restore prior revoke RPC';
+ if to_regprocedure('public.prevent_suspended_matchday_nomination()') is not null then
+   raise exception 'Rollback left nomination trigger function behind';
  end if;
- select pg_get_functiondef('public.prevent_suspended_matchday_nomination()'::regprocedure) into v_def;
- if position('pg_advisory_xact_lock' in v_def)>0 then
-   raise exception 'Rollback did not restore prior nomination trigger function';
+ if exists(select 1 from pg_trigger where tgrelid='public.matchday_players'::regclass and tgname='matchday_players_prevent_suspended_nomination' and not tgisinternal) then
+   raise exception 'Rollback left package 6 nomination trigger behind';
  end if;
- if not exists(select 1 from pg_trigger where tgrelid='public.matchday_players'::regclass and tgname='matchday_players_prevent_suspended_nomination' and not tgisinternal) then
-   raise exception 'Nomination trigger missing after rollback';
+ if (select count(*) from pg_trigger where tgrelid='public.matchday_players'::regclass and not tgisinternal) <> 2 then
+   raise exception 'Rollback changed unrelated pre-existing matchday_players triggers';
  end if;
 end;
 $assert$;
