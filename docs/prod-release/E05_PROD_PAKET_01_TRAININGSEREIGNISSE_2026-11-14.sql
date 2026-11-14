@@ -1,7 +1,8 @@
 -- KADAssist / E05 – PROD Release Paket 1
 -- Trainingsereignisse und Ereignis-Audit
 -- Zielprojekt: Supabase PROD qdugtpzgefpswnnqbusd
--- Status: RELEASE-ENTWURF – NICHT AUSFÜHREN OHNE SEPARATE FREIGABE
+-- Status: ERFOLGREICH IN PROD AUSGEFÜHRT am 14.11.2026, 17:26:46 CET
+-- Supabase-Migration: 20261114162646 / e05_prod_paket_01_trainingsereignisse_20261114
 --
 -- Grundlage: tatsächlich in DEV ausgeführtes SQL
 -- docs/E05_PAKET_01_TRAINING_EVENTS_2026-11-08.sql
