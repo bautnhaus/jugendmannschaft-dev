@@ -177,7 +177,7 @@ Die finale Prüfung bestätigt:
 - Das Audit ist gegen UPDATE, DELETE und TRUNCATE geschützt.
 - Rollback stoppt bei erkannten abhängigen Objekten oder Datenbestand.
 
-**Ergebnis:** Die drei technischen Restpunkte sind abgeschlossen. Paket 1 ist als Release-Kandidat zur Nutzerfreigabe vorbereitet. Die PROD-Ausführung selbst bleibt gesperrt, bis eine separate ausdrückliche Freigabe vorliegt und die unmittelbar vorherige PROD-Backup-/Vorbedingungsprüfung bestanden ist.
+**Historischer Stand:** Die technische Vorbereitung war abgeschlossen. Anschließend wurde Paket 1 nach ausdrücklicher Nutzerfreigabe am 14.11.2026 in PROD ausgeführt; siehe Abschnitt 13. Der Backup-/PITR-Status konnte nicht unabhängig geprüft werden und ist weiterhin als Nachweisgrenze ausgewiesen.
 
 
 ---
@@ -232,3 +232,20 @@ Ein separater Status des Supabase-Backups bzw. PITR konnte über die in dieser S
 - **Backup/PITR:** Kein unabhängiger Backup-/PITR-Nachweis über die verfügbaren Projektwerkzeuge. Dies bleibt ausdrücklich eine Nachweisgrenze.
 
 **Dokumentationsbewertung:** Paket 1 besitzt nun einen nachvollziehbaren Ausführungsnachweis, einen unveränderlichen Verweis auf den tatsächlich ausgeführten SQL-Blob, einen isolierten CI-Testnachweis, einen Rollback-Testnachweis, die Supabase-Migrationskennung und die PROD-Nachkontrolle. Ein PROD-Rollback wurde nicht ausgeführt.
+
+
+## 14. Dokumentationskonsolidierung – verbindlicher aktueller Status
+
+Dieser Abschnitt stellt sicher, dass die älteren Zwischenstände in den Abschnitten 1, 9 und 12 nicht als aktueller Status missverstanden werden.
+
+- Paket 1 wurde nach ausdrücklicher Nutzerfreigabe am 14.11.2026 in Supabase PROD ausgeführt.
+- Supabase-Migration: `20261114162646`, `e05_prod_paket_01_trainingsereignisse_20261114`.
+- Isolierter PostgreSQL-17.6-Test: GitHub Actions Run [43615149537](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43615149537), erfolgreich.
+- Tatsächlich ausgeführtes PROD-SQL-Artefakt liegt unverändert unter dieser Datei; aktueller Git-Blob-SHA des Release-SQL: `1947f9c0ebd8facc28939d7394568e09ae074edf`.
+- Rollback-Datei: `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14_ROLLBACK.sql`, Git-Blob-SHA `98b9341b6bdda96d60c6a57a547ed2e096347339`. Sie wurde nur isoliert getestet und nie in PROD ausgeführt.
+- Nachkontrolle am 14.11.2026 erneut read-only bestätigt: beide Tabellen vorhanden, RLS aktiv, je eine SELECT-Policy, 5 Ereignisindizes, 2 Audit-Indizes, 2 Audit-Trigger, keine API-Schreibrechte, 0 Ereignis- und 0 Auditzeilen.
+- Migrationseintrag in der PROD-Historie vorhanden.
+- Backup-/PITR-Status ist nicht unabhängig nachgewiesen; die isolierte CI-Rollback-Prüfung ist kein PROD-Backup-Nachweis.
+- Paket 2 wurde anschließend separat freigegeben und ausgeführt; sein Nachweis liegt in der Paket-2-Dokumentation.
+
+**Aktueller Abschlussstatus Paket 1: erfolgreich in PROD ausgeführt und read-only verifiziert.** DEV und GitHub `main` blieben unverändert.
