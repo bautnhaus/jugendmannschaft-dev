@@ -1086,3 +1086,15 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Datenbestand:** 0 Ausnahmen, 0 Sperren, 0 Audit-Einträge; keine bestehenden fachlichen Daten verändert.
 - **Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_05_SPIELTAGSAUSNAHMEN_2026-11-14.md`.
 - **Ergebnis:** erfolgreich ausgeführt und read-only nachkontrolliert. Funktionaler End-to-End-Praxistest mit echten Sperren/Spieltagdaten steht noch aus.
+
+### DB-MIG-2026-017 – E05 PROD Paket 6: Atomarer Widerruf einer Spieltagsausnahme
+
+- **Status:** Freigabekandidat vorbereitet; nicht ausgeführt.
+- **DEV-Quelle:** `docs/E05_SQL_ENTWURF_WIDERRUF_AUSNAHME_MIT_NOMINIERUNGSENTFERNUNG_2026-11-12.sql`; DEV-Ausführung 13.11.2026; SHA `5b5ac4fd8c14be5bc00ff8d4774ad1d1ac9800b0`.
+- **PROD-Abweichung:** Nach Paket 5 existiert in PROD weder die Widerrufs-RPC noch der Nominierungsschutz-Trigger. Paket 6 legt daher die synchronisierte Triggerfunktion und den Trigger zusätzlich an.
+- **Migration:** `supabase/migrations/20261114210000_e05_prod_paket_06_atomic_exception_revocation.sql`.
+- **Rollback:** `supabase/rollback/20261114210000_e05_prod_paket_06_atomic_exception_revocation_rollback.sql`; guarded, entfernt ausschließlich Paket-6-Objekte und bricht ab, sobald Widerrufs-/Nominierungsentfernungs-Auditdaten existieren.
+- **CI:** [Run 43638965684](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43638965684), PostgreSQL 17.6; Migration, RPC-/Trigger-/ACL-Assertions und Rollback erfolgreich.
+- **Freigabedossier:** `docs/prod-release/E05_PROD_PAKET_06_ATOMARER_AUSNAHMEWIDERRUF_2026-11-14.md`.
+- **Testgrenze:** Kein authentifizierter End-to-End-Widerruf und kein echter Paralleltransaktionstest im CI; fachliche DEV-Praxistests bleiben vor Frontend-Rollout erforderlich.
+- **Freigabe:** Separate ausdrückliche Freigabe zur PROD-Ausführung erforderlich.
