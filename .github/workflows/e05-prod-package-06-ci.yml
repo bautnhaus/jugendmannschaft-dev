@@ -60,6 +60,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql
       - name: Apply package 5 prerequisite
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114193000_e05_prod_paket_05_matchday_suspension_exception.sql
+      - name: Prepare matchday players fixture
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-06/bootstrap.sql
       - name: Apply exact PROD package 6 SQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114210000_e05_prod_paket_06_atomic_exception_revocation.sql
       - name: Verify package 6 RPC, trigger lock and ACLs
