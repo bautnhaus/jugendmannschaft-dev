@@ -134,9 +134,12 @@ Paket 3 aktiviert die automatische Sperrenerzeugung, enthält aber selbst noch k
 
 ## 9. CI-Auswertung – 14.11.2026
 
-- **Workflow-Run:** [43620391604 – E05 PROD Paket 3 – isolated PostgreSQL validation](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620391604)
-- **Commit:** `4b36272b781c3afa648abdd3dce7327728ebbdfb`
+- **Finaler Workflow-Run:** [43620906226 – E05 PROD Paket 3 – isolated PostgreSQL validation](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620906226)
+- **Commit:** `b75e1789aafd3d3c68702ff40633e41bae5944fb`
+- Vorheriger erfolgreicher Lauf: [43620391604](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620391604). Nach der zusätzlichen Härtung des Rollback-Abhängigkeits-Gates wurde der vollständige Test erneut ausgeführt.
 - **Ergebnis:** `success` auf PostgreSQL 17.6.
+- **Finale SQL-Prüfung:** Der Funktionskörper der live vorhandenen PROD-Paket-2-RPC stimmt nach Normalisierung mit dem Paket-2-Release-SQL und der im Paket-3-Rollback wiederhergestellten Funktionsfassung überein. Die Migration prüft vor Ausführung die erwartete Paket-2-Baseline und die ACLs. Migration-SHA: `7f519980342bcde70379d884144a231a864a9de2`; Rollback-SHA: `f50eec5491a741138e3a23f7934b36fb05caeeb5`; Nachkontroll-SQL-SHA: `21f6800801e53c2765a8a46e1ea0b9b55e39ff1e`.
+- **Rollback-Härtung:** Das Abhängigkeits-Gate deckt nun zusätzlich Paket-4-Einstellungen/-RPCs, Paket-5/6-Ausnahmen, Paket-7-Saisonabschluss, Paket-8-vorzeitigen Ausgleich, Paket-9-Korrekturen, Paket-10-Reconciliation sowie spätere Nominierungs-Trigger/-Funktionen ab.
 - **Erfolgreiche Schritte:** Baseline Paket 1/2; Paket-3-Fixture; Ausführung der exakten PROD-Paket-3-Migrationsdatei; Struktur-/RLS-/Policy-/ACL-/Trigger-Prüfungen; gelbe Karten 1–4 ohne Sperre und Karte 5 mit genau einer gelben Sperre; rote Karte mit genau einer verknüpften roten Sperre; erzwungener Auditfehler mit atomarem Rollback; guarded Paket-3-Rollback und Wiederherstellung der Paket-2-RPC.
 - **Fehlerbehebung vor dem erfolgreichen Lauf:** Die ersten drei Läufe scheiterten ausschließlich beim Fixture-Setup, weil Paket-3-Bootstrap Rollen und Auth-Objekte erneut anlegte, die bereits von Paket 1/2 erzeugt wurden (`role "anon" already exists`). Das Bootstrap wurde auf die noch fehlende Team-Fixture reduziert. Der erfolgreiche Lauf wurde anschließend mit dem korrigierten Fixture vollständig neu ausgeführt.
 - **Testgrenze:** Dies ist ein isolierter PostgreSQL-Test, kein Supabase-PROD-Test und kein Nachweis eines PROD-Backups. Er belegt die getesteten Paket-3-SQL-Pfade innerhalb der Fixture.
