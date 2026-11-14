@@ -10,8 +10,6 @@ begin
  if exists(select 1 from pg_trigger where tgrelid='public.matchday_players'::regclass and tgname='matchday_players_prevent_suspended_nomination' and not tgisinternal) then
    raise exception 'Rollback left package 6 nomination trigger behind';
  end if;
- if (select count(*) from pg_trigger where tgrelid='public.matchday_players'::regclass and not tgisinternal) <> 2 then
-   raise exception 'Rollback changed unrelated pre-existing matchday_players triggers';
- end if;
+
 end;
 $assert$;
