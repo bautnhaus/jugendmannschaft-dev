@@ -699,3 +699,17 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - **Vorherige Fehlversuche:** Drei Läufe scheiterten im Fixture-Bootstrap an doppelter Rollenerstellung (`anon` bereits vorhanden). Ursache korrigiert; der erfolgreiche Lauf wurde auf dem bereinigten Fixture vollständig ausgeführt.
 - **Grenze:** isolierte PostgreSQL-17.6-Validierung, keine Verbindung zu Supabase PROD und kein Backup-/PITR-Nachweis.
 - **Status:** CI-Gate bestanden. Paket 3 bleibt bis zur abschließenden SQL-/Rollback-Review und separaten Nutzerfreigabe nicht zur PROD-Ausführung freigegeben.
+
+
+### E05 PROD Paket 3 – Sperrenfundament (Freigabe ausstehend)
+
+- **Status:** technischer Freigabekandidat auf `develop`; nicht in PROD ausgeführt.
+- **Migration:** `supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql`; SHA `7f519980342bcde70379d884144a231a864a9de2`.
+- **Rollback:** `supabase/rollback/20261114180000_e05_prod_paket_03_suspension_foundation_rollback.sql`; SHA `f50eec5491a741138e3a23f7934b36fb05caeeb5`; guarded, ohne CASCADE, Abbruch bei vorhandenem Datenbestand oder installierten E05-Folgeabhängigkeiten.
+- **Nachkontrolle:** `docs/prod-release/E05_PROD_PAKET_03_SPERRFUNDAMENT_2026-11-14_TESTQUERIES.sql`; SHA `21f6800801e53c2765a8a46e1ea0b9b55e39ff1e`.
+- **Finale CI:** [Run 43620906226](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620906226), PostgreSQL 17.6, `success`, Commit `b75e1789aafd3d3c68702ff40633e41bae5944fb`.
+- **Finale SQL-Prüfung:** Paket-2-Funktionskörper live in PROD mit Paket-2-Release und Rollback-Funktionskörper abgeglichen; Funktionskörper stimmen nach Normalisierung überein. PROD-ACL: EXECUTE nur `authenticated`, nicht `anon`/`service_role`. Paket-3-Objekte/Policies fehlen in PROD wie erwartet.
+- **Rollback-Gate:** erweitert um Folgepaket-4-bis-10-Objekte und spätere Nominierungsabhängigkeiten. Isolierter Rollback-Test erfolgreich.
+- **Fachliche Grenze:** Paket 3 aktiviert automatische Sperrenauslösung, ist jedoch kein vollständiger Trainerworkflow. Spieltagszuordnung, Ausnahmen, Korrektur und finale Trainingsdatum-Chronologie liegen in späteren separat freizugebenden Paketen.
+- **Freigabe:** technische Prüfung abgeschlossen; ausdrückliche Nutzerfreigabe zur PROD-Ausführung steht aus. Unmittelbarer Preflight/Hash-Abgleich erfolgt erst nach Freigabe.
+- **Backup/PITR:** Status wurde nicht unabhängig geprüft; vor Ausführung muss ein geeigneter Wiederherstellungspunkt gemäß Betriebsprozess bestätigt werden.
