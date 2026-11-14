@@ -36,3 +36,25 @@ from public.training_suspension_exceptions;
 select count(*) as exception_audit_rows
 from public.training_suspension_audit
 where action='exception_granted';
+
+-- Audit-Linkage und RLS-Sichtbarkeit
+select column_name,data_type,is_nullable
+from information_schema.columns
+where table_schema='public'
+  and table_name='training_suspension_audit'
+  and column_name in ('suspension_id','exception_id','changed_by_snapshot')
+order by column_name;
+
+select conname,pg_get_constraintdef(oid) definition
+from pg_constraint
+where conrelid='public.training_suspension_audit'::regclass
+  and conname in (
+    'training_suspension_audit_exception_id_fkey',
+    'training_suspension_audit_one_subject_check'
+  );
+
+select policyname,cmd,roles,qual
+from pg_policies
+where schemaname='public'
+  and tablename='training_suspension_audit'
+  and policyname='training_suspension_audit_select';
