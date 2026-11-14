@@ -88,13 +88,13 @@ These remain separate follow-up packages.
 - [x] Guarded rollback created.
 - [x] Read-only verification SQL created.
 - [x] Isolated PostgreSQL 17.6 fixture and CI workflow created.
-- [ ] CI successful and reviewed.
-- [ ] Final SQL/rollback review after CI.
-- [ ] User's explicit PROD execution approval.
+- [x] CI successful and reviewed (Run 43624723426).
+- [x] Final SQL/rollback review after CI.
+- [x] Explicit PROD execution approval received.
 - [ ] Immediate PROD preflight/hash check.
-- [ ] PROD migration executed.
-- [ ] Read-only post-check passed.
-- [ ] Migration journal and execution record updated.
+- [x] PROD migration executed (14.11.2026).
+- [x] Read-only post-check passed.
+- [x] Migration journal and execution record updated.
 
 **Current state: release candidate prepared, not executed in PROD.**
 
@@ -112,3 +112,35 @@ These remain separate follow-up packages.
 - **Finale statische Prüfung:** Migration und Rollback sind transaktional; Rollback ohne `CASCADE`; Daten- und Folgepaket-Gates vorhanden. Migration und Rollback wurden im erfolgreichen CI-Lauf exakt ausgeführt.
 
 **Aktueller Status: CI und finale SQL-/Rollback-Prüfung bestanden. Paket 4 liegt zur ausdrücklichen PROD-Freigabe vor. Nicht in PROD ausgeführt.**
+
+
+## 9. PROD-Ausführung und Nachkontrolle – 14.11.2026
+
+### Freigabe und Ausführung
+- Ausdrückliche Nutzerfreigabe zur Umsetzung und Dokumentation erhalten.
+- Direkt vor Ausführung erneuter read-only Preflight in Supabase PROD. Alle erwarteten Voraussetzungen vorhanden; alle Paket-4-Objekte/RPCs fehlten; keine Paket-5+-Abhängigkeiten vorhanden.
+- Preflight-Datenbestand: 1 Club, 1 Team, 0 Sperren, 0 Sperren-Audit-Einträge, 0 bestehende Sperren-Spieltag-Referenzen.
+- Ausgeführte Datei: `supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql`.
+- Vor Ausführung geprüfter Git-Blob-SHA: `9618e5a3431d88b88eeee5efba6efa94813cbfae`; stimmte mit dem finalen CI-geprüften Artefakt überein.
+- Supabase meldete `success: true`.
+- Tatsächlicher PROD-Migrationseintrag: Version `20261114184029`, Name `e05_prod_paket_04_matchday_lifecycle_20261114`. Die Supabase-generierte Versionsnummer weicht vom Dateipräfix `20261114190000` ab; maßgeblich ist der registrierte PROD-Eintrag.
+
+### Read-only Nachkontrolle
+- Alle drei Konfigurationstabellen vorhanden.
+- RLS auf allen drei Tabellen aktiv; genau drei Paket-4-Policies vorhanden.
+- Direkte Schreibrechte für `authenticated` fehlen; SELECT ist vorhanden. `anon` hat keinen SELECT-Zugriff.
+- Vier öffentliche RPCs sind SECURITY DEFINER mit festem `search_path = pg_catalog, public, auth`.
+- EXECUTE für die vier vorgesehenen RPCs für `authenticated` vorhanden; kein EXECUTE für `anon`.
+- Interner Helper `e05_assign_player_suspensions(uuid,uuid,uuid)` ist für authenticated nicht ausführbar.
+- Zwei append-only Audit-Trigger weiterhin vorhanden.
+- Datenbestand unverändert: 1 Club, 1 Team, 0 Sperren, 0 Sperren-Audit-Einträge. Keine bestehenden Sperr- oder Spieltagsdaten wurden verändert.
+- Migration `20261114184029` ist in der PROD-Migrationshistorie registriert.
+
+### Supabase Advisor – Einordnung nach Paket 4
+- Health Advisor: keine Findings.
+- Security Advisor: meldet unter anderem `set_updated_at` mit mutable search_path sowie deaktivierten Leaked-Password-Schutz. Außerdem listet er SECURITY DEFINER-RPCs, die für authenticated ausführbar sind; die beiden neuen Paket-4-Konfigurations-RPCs sind absichtlich so freigegeben und besitzen serverseitige Berechtigungsprüfungen sowie festen search_path. Die Advisor-Ausgabe enthält darüber hinaus zahlreiche bestehende Funktionen. Keine pauschale Berechtigungsänderung an bestehenden Funktionen wurde vorgenommen.
+- Performance Advisor: meldet bestehende Themen zu nicht indexierten Fremdschlüsseln, RLS-Initplans und mehrfach permissiven Policies. Für Paket 4 werden insbesondere die beiden `updated_by`-Fremdschlüssel als Teil dieser allgemeinen Index-Warnung aufgeführt. Keine zusätzliche Index-/Policy-Änderung wurde ohne separates Paket vorgenommen.
+
+### Abschluss
+**Paket 4 wurde erfolgreich in Supabase PROD ausgeführt und die Struktur, RLS, Berechtigungen, RPC-Konfiguration, Audit-Trigger und Datenbestände wurden read-only nachkontrolliert.**
+Die vollständige funktionale Verifikation mit tatsächlichen Sperren und Matchdays bleibt auf die dokumentierten DEV-Abnahmetests und den isolierten CI-Test begrenzt; ein realer PROD-End-to-End-Sperrenablauf wurde nicht durch Testdaten ausgelöst.
