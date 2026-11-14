@@ -97,3 +97,26 @@ Während der Vorbereitung wurden zwei reale Abweichungen der isolierten Testbasi
 ## 9. Freigabestatus
 
 Paket 6 ist nach erfolgreichem isoliertem CI-Lauf zur ausdrücklichen PROD-Ausführungsfreigabe vorbereitet. Es wurde weder in DEV noch PROD ausgeführt. GitHub `main` bleibt unverändert.
+ 
+
+## 10. PROD-Ausführung und Nachkontrolle – 14.11.2026
+
+- **Freigabe:** ausdrücklich erteilt durch den Nutzer am 14.11.2026.
+- **Projekt:** Supabase PROD `qdugtpzgefpswnnqbusd`, Region `eu-west-1`, PostgreSQL `17.6.1.166`.
+- **Migrationseintrag:** `20261114211343 e05_prod_paket_06_atomic_exception_revocation_20261114`.
+- **Ausführung:** erfolgreich über Supabase Migration API; keine Fehler zurückgegeben.
+- **Ausgeführte Quelle:** vorbereitete Paket-6-Migration aus `develop`, Git-Blob-SHA vor Ausführung `1f7eac877c6edbc5873617e4118c4721cb1f2bc6`.
+- **Nachkontrolle:** Migration ist in der PROD-Migrationshistorie registriert.
+- `revoke_suspension_exception(uuid,text)`: vorhanden, Eigentümer `postgres`, SECURITY DEFINER, fester `search_path=pg_catalog, public, auth`; EXECUTE für `authenticated`, nicht für `anon` oder `service_role`.
+- `prevent_suspended_matchday_nomination()`: vorhanden, SECURITY INVOKER, fester `search_path=pg_catalog, public`.
+- Trigger `matchday_players_prevent_suspended_nomination`: vorhanden als BEFORE INSERT OR UPDATE OF matchday_id, player_id. Die beiden vorher bestehenden Aktivspieler-Trigger sind weiterhin vorhanden.
+- Produktivdaten nach Ausführung: 0 Ausnahmen, 0 Sperren, 0 Audit-Zeilen, 0 Widerrufs-Audit-Zeilen. Keine Produktivdatensätze wurden durch die Migration verändert.
+- **Rollback:** nicht ausgeführt.
+- **DEV:** unverändert.
+- **GitHub main / Frontend:** unverändert; kein Index-Deploy.
+
+### Abgrenzung der Prüfung
+
+Die Struktur-, Trigger-, Funktions- und ACL-Nachkontrolle ist erfolgreich. Es wurden bewusst keine künstlichen Widerrufe oder Testdatensätze in PROD angelegt. Damit sind authentifizierte Rollen-End-to-End-Tests, der reale Nominierungsentfernungsfall und ein echter Paralleltransaktionstest nicht in PROD durchgeführt. Diese Tests sind vor dem Frontend-Rollout in DEV bzw. einer isolierten Testumgebung auszuführen.
+
+Der Security Advisor meldet weiterhin allgemeine, bereits vorhandene Hinweise im Projekt (u. a. zahlreiche SECURITY DEFINER-RPCs sowie mutable search_path bei `public.set_updated_at`). Die Ausgabe ist projektweit und belegt nicht, dass diese Hinweise durch Paket 6 verursacht wurden. Keine pauschale Berechtigungsänderung im Rahmen dieses Pakets vorgenommen.
