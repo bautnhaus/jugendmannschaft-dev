@@ -48,6 +48,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.sql
       - name: Verify schema, RLS, grants, indexes and append-only guard
         run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-01/assertions.sql
+      - name: Verify rollback guards reject data and dependent packages
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-01/rollback_guard_assertions.sql
       - name: Verify guarded rollback and clean removal
         run: |
           psql -v ON_ERROR_STOP=1 -f docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14_ROLLBACK.sql
