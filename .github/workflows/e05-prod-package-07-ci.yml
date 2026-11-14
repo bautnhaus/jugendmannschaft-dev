@@ -1,0 +1,49 @@
+name: E05 PROD Package 7 isolated PostgreSQL CI
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'supabase/migrations/20261114220000_e05_prod_paket_07_controlled_season_closure.sql'
+      - 'supabase/rollback/20261114220000_e05_prod_paket_07_controlled_season_closure_rollback.sql'
+      - 'docs/prod-release/test-package-07/**'
+      - '.github/workflows/e05-prod-package-07-ci.yml'
+  workflow_dispatch:
+jobs:
+  postgres-17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: e05_package_07_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d e05_package_07_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: e05_package_07_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Prepare minimal AP02 and E05 prerequisites
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-07/bootstrap.sql
+      - name: Apply exact package 7 migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114220000_e05_prod_paket_07_controlled_season_closure.sql
+      - name: Verify structure, ACL, RLS, behavior and rollback safety
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-07/assertions.sql
+      - name: Verify guarded rollback
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/rollback/20261114220000_e05_prod_paket_07_controlled_season_closure_rollback.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-07/rollback_assertions.sql
