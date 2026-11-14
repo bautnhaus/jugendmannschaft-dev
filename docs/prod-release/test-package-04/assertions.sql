@@ -62,6 +62,7 @@ begin
  raise exception 'Explicit empty override not represented'; end if;
  if public.assign_next_suspension_matchday(team,player)<>0 then
  raise exception 'Assignment should return zero when player has no open suspensions'; end if;
+ perform public.set_team_suspension_game_types(team,false,'{}');
  insert into public.matchdays(id,team_id,season_id,match_date,opponent,game_type,status)
  values(matchday,team,season,current_date,'CI Opponent','Meisterschaft','done');
  if public.serve_matchday_suspensions(matchday)<>0 then
