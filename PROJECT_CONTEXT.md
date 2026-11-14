@@ -1,5 +1,17 @@
 # E05 – PROD Rollout und nächster Freigabeschritt (14.11.2026)
 
+- **Paket 1 und 2:** erfolgreich in Supabase PROD ausgeführt und read-only verifiziert; DB-MIG-2026-012/-013.
+- **Paket 3:** finale technische Freigabeunterlage auf `develop` erstellt; Migration, guarded Rollback und read-only Nachkontrolle sind final geprüft. Noch nicht in PROD ausgeführt.
+- **Finaler CI-Lauf:** [Run 43620906226](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620906226), PostgreSQL 17.6, `success`, Commit `b75e1789aafd3d3c68702ff40633e41bae5944fb`.
+- **SQL-/Rollback-Prüfung:** live PROD-Paket-2-Funktionskörper mit Paket-2-Release und Rollback-Fassung abgeglichen; Rollback-Gates für E05-Folgepakete 4–10 und spätere Nominierungsabhängigkeiten ergänzt und im CI erneut getestet.
+- **Freigabegrenze:** Paket 3 liegt zur ausdrücklichen PROD-Freigabe vor. Vor Ausführung: unmittelbarer Preflight/Hash-Abgleich und Bestätigung eines geeigneten Backups/Wiederherstellungspunkts. Kein PROD-Write ohne ausdrückliche Freigabe.
+- **Fachliche Grenze:** Paket 3 ist nur Sperrenfundament und automatische Sperrenauslösung; weitere E05-Folgepakete bleiben erforderlich.
+- **Umgebungsgrenzen:** Vorbereitung nur auf `develop`; keine SQL-Ausführung in DEV/PROD und keine Änderung an GitHub `main`.
+
+---
+
+# E05 – PROD Rollout und nächster Freigabeschritt (14.11.2026)
+
 - **Paket 1 und 2:** erfolgreich in Supabase PROD ausgeführt und read-only verifiziert. Migrationen `20261114162646` und `20261114165213`; Details im `DB_MIGRATION_LOG.md` (DB-MIG-2026-012/-013).
 - **Paket 3:** Migration, guarded Rollback, read-only Nachkontrolle und isolierte Test-Fixture auf `develop` vorbereitet. CI PostgreSQL 17.6 erfolgreich: [Run 43620391604](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620391604), Commit `4b36272b781c3afa648abdd3dce7327728ebbdfb`.
 - **CI-Prüfungen:** Paket-3-Migration; RLS/Policies/ACL/Trigger; gelbe Karten 1–4 ohne und Karte 5 mit Sperre; rote Karte mit Sperre; atomarer Rollback bei Auditfehler; guarded Rollback und Wiederherstellung Paket 2.
