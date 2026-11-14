@@ -120,3 +120,7 @@ Paket 6 ist nach erfolgreichem isoliertem CI-Lauf zur ausdrücklichen PROD-Ausf�
 Die Struktur-, Trigger-, Funktions- und ACL-Nachkontrolle ist erfolgreich. Es wurden bewusst keine künstlichen Widerrufe oder Testdatensätze in PROD angelegt. Damit sind authentifizierte Rollen-End-to-End-Tests, der reale Nominierungsentfernungsfall und ein echter Paralleltransaktionstest nicht in PROD durchgeführt. Diese Tests sind vor dem Frontend-Rollout in DEV bzw. einer isolierten Testumgebung auszuführen.
 
 Der Security Advisor meldet weiterhin allgemeine, bereits vorhandene Hinweise im Projekt (u. a. zahlreiche SECURITY DEFINER-RPCs sowie mutable search_path bei `public.set_updated_at`). Die Ausgabe ist projektweit und belegt nicht, dass diese Hinweise durch Paket 6 verursacht wurden. Keine pauschale Berechtigungsänderung im Rahmen dieses Pakets vorgenommen.
+
+### Technische Ausführungsnotiz zur SQL-Identität
+
+Die über Supabase `apply_migration` übermittelte SQL-Fassung wurde aus der freigegebenen GitHub-Migration mit derselben DDL und Funktionslogik zusammengestellt; Kommentare und Formatierung wurden dabei teilweise gekürzt. Der Blob-SHA `1f7eac877c6edbc5873617e4118c4721cb1f2bc6` bezeichnet daher die geprüfte GitHub-Basisdatei, nicht einen byte-identischen Hash des an die API übermittelten SQL-Strings. Die nach Ausführung aus PROD ausgelesenen Funktionsdefinitionen, ACLs und Trigger bestätigen die beabsichtigten Objekte und Eigenschaften.
