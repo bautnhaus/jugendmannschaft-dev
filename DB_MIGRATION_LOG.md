@@ -1011,3 +1011,20 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Änderungsgrenzen:** DEV und GitHub `main` unverändert. Keine bestehenden Tabellen, Rollen oder Policies geändert. Paket 3 bleibt separat freigabepflichtig.
 
 - **Zusätzliche Ausführungssicherung:** Ein nachfolgender identischer Ausführungsaufruf wurde durch das SQL-Vorbedingungs-Gate vor DDL abgebrochen, da die Paket-2-RPC bereits existierte. Keine zweite Funktionsänderung; in der PROD-Migrationshistorie steht genau ein Paket-2-Eintrag.
+
+
+### DB-MIG-2026-014 – E05 PROD Paket 3: Sperrenfundament und automatische Sperrenauslösung (Freigabekandidat)
+
+- **Status:** Technische Abschlussprüfung bestanden; zur ausdrücklichen PROD-Freigabe vorgelegt. **Noch nicht in PROD ausgeführt.**
+- **Zielumgebung:** Supabase PROD `qdugtpzgefpswnnqbusd`, PostgreSQL 17.6.
+- **Abhängigkeiten:** DB-MIG-2026-012 (Paket 1) und DB-MIG-2026-013 (Paket 2) sind in PROD vorhanden.
+- **DEV-Quelle:** `docs/E05_PAKET_03_SUSPENSION_TRIGGER_2026-11-08.sql`, Blob-SHA `74c77a6c3b1f346e404d88254533bf908a469662`; zugehöriges DEV-Ausführungsprotokoll `docs/E05_PAKET_03_FREIGABE_UND_AUSFUEHRUNG_2026-11-08.md`.
+- **PROD-Migration:** `supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql`, Blob-SHA `7f519980342bcde70379d884144a231a864a9de2`.
+- **Rollback:** `supabase/rollback/20261114180000_e05_prod_paket_03_suspension_foundation_rollback.sql`, Blob-SHA `2bef2818bce64fac90ca17c1d27794baeac69255`.
+- **CI-Nachweis:** GitHub Actions Run `43620391604`, erfolgreich auf PostgreSQL 17.6. Migration, Rollback, Assertions und Fixture stimmen bytegenau mit den im erfolgreichen CI-Commit `4b36272b781c3afa648abdd3dce7327728ebbdfb` getesteten Dateien überein.
+- **Abschlussreview:** PROD-Migrationsfunktion ist identisch mit dem DEV-Paket-3-Funktionsblock; Rollback stellt die Paket-2-PROD-RPC exakt wieder her; keine `CASCADE`-Operation. Aktuelle PROD-Vorbedingungen und benötigte Bestandsfelder read-only bestätigt. Paket-1-Event- und Audit-Tabellen enthalten derzeit 0 Zeilen.
+- **Fachlicher Umfang:** rote Karte erzeugt sofort eine rote Sperre; fünfte aktive gelbe Karte erzeugt eine gelbe Sperre. Die spätere Trainingsdatum-Chronologie und Spieltagszuordnung/Ausnahmen sind nicht Teil dieses Pakets, sondern folgen in späteren Paketen.
+- **Rollback-Grenze:** Bei vorhandenen Ereignis-/Auditdaten oder installierten Folgepaketen bricht das Rollback ab. Es entfernt nicht selbst einen Eintrag aus Supabase-Migrationshistorie; eine eventuelle Ledger-Abstimmung ist separat über den vorgesehenen Supabase-Migrationsprozess vorzunehmen. Backup-/PITR-Status konnte nicht unabhängig ausgelesen werden und ist vor Ausführung zu prüfen.
+- **Freigabe:** Die Freigabe zur Vorbereitung ist erteilt; eine ausdrückliche Freigabe zur PROD-Ausführung steht noch aus.
+- **Ausführung:** Nicht ausgeführt. Kein Supabase-DEV-/PROD-Schreibzugriff, keine Änderung an GitHub `main`. Vor tatsächlicher Ausführung erneuter Preflight, Hash-Abgleich und Backup-/PITR-Kontrolle.
+- **Vollständiges Freigabedossier:** `docs/prod-release/E05_PROD_PAKET_03_SPERRFUNDAMENT_2026-11-14.md`.
