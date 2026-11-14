@@ -675,3 +675,18 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - Gesperrter direkter Nominierungs-INSERT wird serverseitig abgewiesen; ungesperrter INSERT-Positivtest innerhalb Transaktion zurückgerollt.
 - Frontend auf `develop` bindet Sperrstatus, Ausschluss aus Empfehlung und begründungspflichtige Spieltagsausnahme an. Commit `32afa447a7b6e9baf46d1c55412fd03023c39339`.
 - Browser-Praxistest und Widerruf-UI noch offen. PROD und `main` unverändert.
+
+
+## E05 PROD Paket 3 – Freigabekandidat vorbereitet (14.11.2026)
+
+- **Status:** vorbereitet auf GitHub `develop`; nicht in Supabase PROD ausgeführt und nicht als PROD-Migration registriert.
+- **Ziel:** Sperrenfundament und automatische Sperrenauslösung nach den bereits in PROD ausgeführten Paketen 1 und 2.
+- **DEV-Quelle:** `docs/E05_PAKET_03_SUSPENSION_TRIGGER_2026-11-08.sql` (Blob-SHA `74c77a6c3b1f346e404d88254533bf908a469662`) und DEV-Ausführungsprotokoll `docs/E05_PAKET_03_FREIGABE_UND_AUSFUEHRUNG_2026-11-08.md`.
+- **PROD-Migration:** `supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql`.
+- **Rollback:** `supabase/rollback/20261114180000_e05_prod_paket_03_suspension_foundation_rollback.sql`; guarded, ohne CASCADE, Abbruch bei Datenbestand oder installierten Folgepaketen; stellt die Paket-2-RPC wieder her.
+- **Prüf-SQL:** `docs/prod-release/E05_PROD_PAKET_03_SPERRFUNDAMENT_2026-11-14_TESTQUERIES.sql`.
+- **Isolierte Tests:** `docs/prod-release/test-package-03/` und `.github/workflows/e05-prod-package-03-test.yml`; PostgreSQL 17.6, keine Verbindung zu DEV/PROD.
+- **Read-only PROD-Vorprüfung:** Paket 1/2 vorhanden; Sperrentabellen, Sperren-Audit, Sperren-Audit-Guard und Folgepaketobjekte fehlen; Rollen-/Kontext-Helfer und erforderliche Basistabellen/Felder vorhanden.
+- **Betriebsgrenze:** Paket 3 aktiviert automatische Sperrenerzeugung, enthält aber noch keine Spieltagszuordnung, Ausnahmen, Widerruf, Korrektur oder spätere Trainingsdatum-Chronologie. Es ist kein vollständiger Trainerworkflow. Folgepakete bleiben separat vorzubereiten und freizugeben.
+- **Freigabegrenze:** Nutzerfreigabe zur Vorbereitung liegt vor; PROD-Ausführungsfreigabe liegt nicht vor. Keine SQL-Ausführung in PROD oder DEV. GitHub `main` unverändert.
+- **Nächste Gates:** CI-Ergebnis prüfen; SQL/rollback final reviewen; danach vollständiges Freigabepaket vorlegen. Erst nach separater ausdrücklicher Zustimmung unmittelbar vor Ausführung PROD-Preflight/Hash-Abgleich und Migration ausführen.
