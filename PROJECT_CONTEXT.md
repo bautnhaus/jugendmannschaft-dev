@@ -554,3 +554,17 @@ Der Feature-Branch `feature/dev-single-team-membership-guard-review` ist ein his
 - Der zugehörige Rollback-Entwurf liegt in `docs/E05_SQL_ROLLBACK_ENTWURF_WIDERRUF_AUSNAHME_2026-11-12.sql` (Git-Blob-SHA `630c6949faa6e45daf9c758364cb11eb86b09a65`); ausdrücklich Review-only, nicht ausgeführt.
 - `docs/E05_UMSETZUNGSVORSCHLAG_SPERRMASSNAHMEN_OPTIONSMENUE_2026-11-12.md`, Abschnitte 10.7–10.10, dokumentiert Migrationseintrag, Live-Verifikation, Funktionstests und bestandenen Zwei-Session-Konkurrenztest.
 - Das frühere Release-Gate „Original-SQL fehlt“ ist geschlossen. Für PROD bleibt die Überführung in ein versioniertes Migrationspaket mit geprüftem Rollback-/Wiederherstellungsplan erforderlich.
+
+
+## E05 PROD Rollout – Stand 14.11.2026 nach Paket 4
+
+- **Paket 1–4 sind in Supabase PROD registriert.** Paket 4 wurde nach ausdrücklicher Nutzerfreigabe erfolgreich ausgeführt.
+- Paket 4: Supabase-Migration Version `20261114184029`, Name `e05_prod_paket_04_matchday_lifecycle_20261114`.
+- Ausgeführtes SQL: `supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql`, SHA `9618e5a3431d88b88eeee5efba6efa94813cbfae`.
+- Read-only Nachkontrolle bestanden: drei Konfigurationstabellen, RLS/Policies, Tabellenrechte, vier öffentliche RPCs, interner Helper ohne authenticated EXECUTE und zwei append-only Audit-Trigger wie erwartet.
+- Datenbestand unverändert: 1 Club, 1 Team, 0 Sperren und 0 Sperren-Audit-Einträge. Keine Testdaten in PROD angelegt.
+- Isolierter PostgreSQL-17.6-CI-Lauf erfolgreich: [Run 43624723426](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43624723426). Rollback liegt bereit, wurde nicht ausgeführt.
+- **Funktionsgrenze:** Keine Frontend-Anbindung/Club-Einstellungsoberfläche im Paket 4; keine realen PROD-Sperrenabläufe ausgelöst. DEV-Abnahme und CI-Testgrenzen stehen im Paket-Dossier.
+- Security-/Performance-Advisor nach DDL geprüft; Health ohne Findings. Projektweite Advisor-Hinweise sind im Ausführungsdossier eingeordnet. Keine fremden Funktionen/Policies verändert.
+- Dokumentation: `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14.md`, `DB_MIGRATION_LOG.md`, `DB_CHANGELOG.md`.
+- Keine Änderungen an GitHub `main`; keine Frontend-Änderung im Rahmen dieses Pakets.
