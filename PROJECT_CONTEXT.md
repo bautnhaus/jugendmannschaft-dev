@@ -1,5 +1,16 @@
 # E05 – PROD Rollout-Status (14.11.2026)
 
+- **Paket 1–3:** erfolgreich in Supabase PROD ausgeführt und read-only nachkontrolliert; DB-MIG-2026-012 bis -014.
+- **Paket 4:** PROD-Releasekandidat auf `develop` vorbereitet; Migration, guarded Rollback, read-only Nachkontrolle, isolierte PostgreSQL-17.6-Fixture und CI-Workflow erstellt. Noch nicht in PROD ausgeführt.
+- **Paket-4-CI:** [Run 43624723426](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43624723426), success. DEV-Abnahme- und CI-Grenzen sind im Paket-Dossier dokumentiert.
+- **PROD-Preflight:** Pakete 1–3 und benötigte Schema-/Kontextabhängigkeiten vorhanden; Paket-4-Objekte fehlen wie erwartet; 0 Sperren und 0 Sperren-Audit-Einträge.
+- **Nächster Schritt:** ausdrückliche Nutzerfreigabe. Vor Ausführung unmittelbarer PROD-Preflight und Hash-Abgleich. Kein PROD-Write vor Freigabe.
+- **Umgebungsgrenzen:** keine DEV-/PROD-Schreibzugriffe und keine Änderung an GitHub `main` bei der Vorbereitung.
+
+---
+
+# E05 – PROD Rollout-Status (14.11.2026)
+
 - **Paket 1:** PROD erfolgreich, Migration `20261114162646`.
 - **Paket 2:** PROD erfolgreich, Migration `20261114165213`.
 - **Paket 3:** PROD erfolgreich, Migration `20261114174854` (`e05_prod_paket_03_suspension_foundation_20261114`). Tabellen, RLS, Policies, Indizes, Audit-Guard/Trigger, RPC und ACL read-only geprüft; unmittelbar nach Ausführung 0 Sperren und 0 Sperren-Audit-Einträge.
