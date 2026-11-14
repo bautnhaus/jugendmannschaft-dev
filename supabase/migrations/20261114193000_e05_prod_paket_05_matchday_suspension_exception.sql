@@ -14,7 +14,8 @@ begin
     raise exception 'E05 Paket 5 abgebrochen: Paket-3/4-Basistabellen fehlen.';
   end if;
   if to_regclass('public.training_suspension_exceptions') is not null
-     or to_regprocedure('public.grant_suspension_exception(uuid,uuid,text)') is not null then
+     or to_regprocedure('public.grant_suspension_exception(uuid,uuid,text)') is not null
+     or exists (select 1 from information_schema.columns where table_schema='public' and table_name='training_suspension_audit' and column_name='exception_id') then
     raise exception 'E05 Paket 5 abgebrochen: Ausnahme-Tabelle oder RPC existiert bereits; zuerst Bestand manuell abgleichen.';
   end if;
   if to_regprocedure('public.e05_assign_player_suspensions(uuid,uuid,uuid)') is null then
@@ -67,6 +68,43 @@ create policy training_suspension_exceptions_read
 
 revoke all on table public.training_suspension_exceptions from public, anon, authenticated;
 grant select on table public.training_suspension_exceptions to authenticated, service_role;
+
+-- Audit-Tabelle für zwei zulässige Ereignis-Subjekte erweitern:
+-- entweder eine Sperre (suspension_id) oder eine Ausnahme (exception_id).
+alter table public.training_suspension_audit
+  alter column suspension_id drop not null,
+  add column exception_id uuid,
+  add column changed_by_snapshot text;
+
+alter table public.training_suspension_audit
+  add constraint training_suspension_audit_exception_id_fkey
+    foreign key (exception_id)
+    references public.training_suspension_exceptions(id)
+    on delete restrict,
+  add constraint training_suspension_audit_one_subject_check
+    check (num_nonnulls(suspension_id, exception_id) = 1);
+
+drop policy if exists training_suspension_audit_select
+  on public.training_suspension_audit;
+
+create policy training_suspension_audit_select
+  on public.training_suspension_audit
+  for select to authenticated
+  using (
+    exists (
+      select 1
+      from public.training_suspensions s
+      where s.id = training_suspension_audit.suspension_id
+        and (is_team_member(s.team_id) or has_selected_team_context(s.team_id))
+    )
+    or exists (
+      select 1
+      from public.training_suspension_exceptions e
+      join public.training_suspensions s on s.id = e.suspension_id
+      where e.id = training_suspension_audit.exception_id
+        and (is_team_member(s.team_id) or has_selected_team_context(s.team_id))
+    )
+  );
 
 create or replace function public.grant_suspension_exception(
   p_suspension_id uuid,
