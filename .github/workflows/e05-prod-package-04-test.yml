@@ -53,4 +53,4 @@ jobs:
       - name: Verify guarded rollback
         run: |
           psql -v ON_ERROR_STOP=1 -f supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql
-          psql -v ON_ERROR_STOP=1 -c "DO \\$\\$ BEGIN IF to_regclass('public.club_suspension_settings') IS NOT NULL OR to_regclass('public.team_suspension_game_type_settings') IS NOT NULL OR to_regclass('public.team_suspension_game_types') IS NOT NULL THEN RAISE EXCEPTION 'Package 4 tables remain after rollback'; END IF; IF to_regprocedure('public.serve_matchday_suspensions(uuid)') IS NOT NULL THEN RAISE EXCEPTION 'Package 4 RPC remains after rollback'; END IF; END \\$\\$;"
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-04/rollback_assertions.sql
