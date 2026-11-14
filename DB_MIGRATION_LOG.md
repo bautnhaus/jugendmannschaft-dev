@@ -1034,3 +1034,6 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **GitHub-Artefakte auf `develop`:** Release-SQL Blob-SHA `bea5a140587a1e9cee4f49504e7bf983283bdda9`; Rollback `aa026f9f91b66420e52c193ef5f36588f6a3bb0a`; Ausführungsdokumentation zuletzt aktualisiert unter `02e1a333404d060cee451b61de9523f9b3788fc6`; CI-Workflow `.github/workflows/e05-prod-package-02-test.yml`.
 - **Zusätzliche Hinweise:** Keine Änderung an Supabase DEV, GitHub `main`, Frontend, bestehenden Tabellen, Rollen, Policies oder fachlichen Bestandsdatensätzen. Paket 3 bleibt einzeln freigabepflichtig.
 
+
+
+- **Zusätzliche Ausführungssicherung zu DB-MIG-2026-013:** Ein nachfolgender identischer Ausführungsaufruf wurde durch das SQL-Vorbedingungs-Gate vor DDL abgebrochen, da die Paket-2-RPC bereits existierte. Keine zweite Funktionsänderung; in der PROD-Migrationshistorie steht genau ein Paket-2-Eintrag.
