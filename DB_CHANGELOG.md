@@ -730,3 +730,17 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - **Datenbestand:** unmittelbar nach Migration 0 Sperren und 0 Sperren-Audit-Einträge; keine bestehenden Ereignisdaten wurden verändert.
 - **Backup/PITR:** kein unabhängiger Backup-/PITR-Nachweis. Gemäß dokumentierter Einschränkung des Supabase-Free-Plans wurde dies nicht als Release-Blocker behandelt.
 - **Rollback:** nicht ausgeführt; nur für einen nötigen, gesondert geprüften Wiederherstellungsfall vorgesehen.
+
+
+### E05 PROD Paket 4 – Spieltagszuordnung und Ableistung (Freigabe ausstehend)
+
+- **Status:** technischer Freigabekandidat auf `develop`; nicht in PROD ausgeführt.
+- **DEV-Quelle:** `docs/E05_PAKET_04_SPIELTAG_ZUORDNUNG_UND_ABLEISTUNG_2026-11-08.sql`; DEV-Abnahme `docs/E05_PAKET_04_FREIGABE_UND_AUSFUEHRUNG_2026-11-08.md`; DEV-Migration `20261108133922`.
+- **PROD-Migration:** `supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql`; SHA `9618e5a3431d88b88eeee5efba6efa94813cbfae`.
+- **Rollback:** `supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql`; SHA `859eb68407373b4a6c8940ed3c8f9c9b640efe0c`.
+- **Nachkontrolle:** `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14_TESTQUERIES.sql`; SHA `bf6707f8b556fb64f5e3938baed5994bb883ac19`.
+- **Finaler CI-Lauf:** [Run 43624723426](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43624723426), PostgreSQL 17.6, success; CI-Commit `16b4d93a2ca796db5ab3f3af0bc01a1341e365dc`.
+- **PROD read-only preflight:** Paket 1–3 vorhanden; benötigte Tabellen/Spalten/Kontexthelfer vorhanden; Paket-4-Objekte fehlen; 1 Club/1 Team; 0 Sperren und 0 Sperren-Audit-Einträge.
+- **Umfang:** Club-Standard und vollständiger Team-Override für relevante Spielarten; automatische Zuordnung offener Sperren; Ableistung nur nach relevantem Matchday-Status `done`; gelb vor rot; Auditierung.
+- **Testgrenze:** CI prüft Struktur/ACL/RPC-Konfiguration und Rollback isoliert. Vollständige funktionale Fälle mit echten offenen Sperren/Matchdays sind im DEV-Abnahmeprotokoll dokumentiert.
+- **Freigabe:** finale technische Prüfung abgeschlossen; ausdrückliche PROD-Ausführungsfreigabe steht aus. Unmittelbarer Preflight/Hash-Abgleich erfolgt erst nach Freigabe.
