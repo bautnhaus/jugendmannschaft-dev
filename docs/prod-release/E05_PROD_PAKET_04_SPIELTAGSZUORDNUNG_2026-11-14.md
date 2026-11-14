@@ -97,3 +97,18 @@ These remain separate follow-up packages.
 - [ ] Migration journal and execution record updated.
 
 **Current state: release candidate prepared, not executed in PROD.**
+
+
+## 8. CI-Auswertung und finale SQL-Prüfung – 14.11.2026
+
+- **Finaler Workflow:** [Run 43624723426 – E05 PROD Paket 4](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43624723426).
+- **Ergebnis:** `success`, PostgreSQL 17.6; alle Schritte erfolgreich: Paket-1–3-Baseline, Club-/Kontext-Fixture, exakte PROD-Migration, Struktur-/ACL-/RPC-Assertions, guarded Rollback und Rollback-Assertions.
+- **CI-Commit:** `16b4d93a2ca796db5ab3f3af0bc01a1341e365dc`.
+- **Migration SHA:** `9618e5a3431d88b88eeee5efba6efa94813cbfae`.
+- **Rollback SHA:** `859eb68407373b4a6c8940ed3c8f9c9b640efe0c`.
+- **Nachkontroll-SQL SHA:** `bf6707f8b556fb64f5e3938baed5994bb883ac19`.
+- **CI-Fixes:** Der erste CI-Lauf zeigte eine fehlende `matchdays`-Tabelle in der isolierten Fixture; diese wurde ergänzt. Ein weiterer Testlauf zeigte, dass der Test den absichtlich leeren Team-Override noch aktiv hatte, als er einen Meisterschaftsspieltag prüfte; der Test stellt vor diesem Schritt korrekt den Club-Standard wieder her. Die Rollback-Prüfung wurde danach auf eine dedizierte SQL-Assertion umgestellt. Ein finaler Lauf bestand vollständig.
+- **Wichtige Abgrenzung:** Der CI-Lauf belegt die Migration, Struktur, Rechte, Konfigurations-RPCs, No-op-Verhalten und Rollback in isoliertem PostgreSQL. Die vollständigen Szenarien mit tatsächlich offenen Sperren und echten Spieltagszuordnungen sind durch das DEV-Abnahmeprotokoll belegt, nicht vollständig erneut in CI nachgestellt.
+- **Finale statische Prüfung:** Migration und Rollback sind transaktional; Rollback ohne `CASCADE`; Daten- und Folgepaket-Gates vorhanden. Migration und Rollback wurden im erfolgreichen CI-Lauf exakt ausgeführt.
+
+**Aktueller Status: CI und finale SQL-/Rollback-Prüfung bestanden. Paket 4 liegt zur ausdrücklichen PROD-Freigabe vor. Nicht in PROD ausgeführt.**
