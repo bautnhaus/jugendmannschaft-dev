@@ -1,5 +1,16 @@
 # E05 – PROD Rollout und nächster Freigabeschritt (14.11.2026)
 
+- **Paket 1 und 2:** erfolgreich in Supabase PROD ausgeführt und read-only verifiziert. Migrationen `20261114162646` und `20261114165213`; Details im `DB_MIGRATION_LOG.md` (DB-MIG-2026-012/-013).
+- **Paket 3:** Migration, guarded Rollback, read-only Nachkontrolle und isolierte Test-Fixture auf `develop` vorbereitet. CI PostgreSQL 17.6 erfolgreich: [Run 43620391604](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620391604), Commit `4b36272b781c3afa648abdd3dce7327728ebbdfb`.
+- **CI-Prüfungen:** Paket-3-Migration; RLS/Policies/ACL/Trigger; gelbe Karten 1–4 ohne und Karte 5 mit Sperre; rote Karte mit Sperre; atomarer Rollback bei Auditfehler; guarded Rollback und Wiederherstellung Paket 2.
+- **Grenze:** isolierte PostgreSQL-Validierung, keine PROD-Verbindung, kein Backup-/PITR-Nachweis. Paket 3 allein ist kein vollständiger Trainerworkflow; Spieltagszuordnung, Ausnahmen und spätere Chronologie folgen in weiteren separat freizugebenden Paketen.
+- **Nächste Schritte:** finale SQL-/Rollback-Review und Freigabeunterlage. Keine PROD-Ausführung ohne ausdrückliche separate Freigabe.
+- **Umgebungsgrenzen:** Keine SQL-Ausführung in DEV oder PROD und keine Änderung an GitHub `main`.
+
+---
+
+# E05 – PROD Rollout und nächster Freigabeschritt (14.11.2026)
+
 - **Paket 1 und 2:** erfolgreich in Supabase PROD ausgeführt und read-only verifiziert. Migrationen `20261114162646` und `20261114165213`; Details und unveränderliche SQL-Nachweise im `DB_MIGRATION_LOG.md` (DB-MIG-2026-012/-013).
 - **Paket 3:** Freigabekandidat auf `develop` vorbereitet, aber nicht in PROD ausgeführt. DEV-Quelle, PROD-Migration, guarded Rollback, read-only Prüf-SQL und isolierte PostgreSQL-17.6-CI-Fixture/Workflow liegen vor.
 - **Paket-3-PROD-Vorprüfung:** Paket 1/2 vorhanden; Sperrenobjekte und Folgepakete fehlen; notwendige Rollen-/Kontext-Helfer und Basistabellen/Felder sind vorhanden.
