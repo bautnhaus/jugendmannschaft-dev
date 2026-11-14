@@ -89,3 +89,32 @@ Der Workflow baut eine frische PostgreSQL-17.6-Testdatenbank auf, stellt die dok
 **Fehlerkorrektur:** Der erste echte Testlauf zeigte einen Fehler in der Testhülle: Die zweite negative Audit-Prüfung erwartete eine Foreign-Key-Verletzung, tatsächlich greift die `training_suspension_audit_one_subject_check`-Constraint früher. Der Test wurde auf `check_violation` korrigiert und in einem neuen vollständigen Lauf erneut ausgeführt. Die Migration selbst war in beiden Läufen erfolgreich.
 
 **Testgrenze:** Der CI-Lauf prüft Schema, Berechtigungen, Audit-Constraints und den Rollback auf einer isolierten leeren PostgreSQL-17.6-Basis. Er ersetzt nicht den späteren DEV-/PROD-Praxistest der Grant-RPC mit realen Teammitgliedern, offenen Sperren und geplanten Spieltagen. Paket 5 ist damit technisch für die ausdrückliche PROD-Freigabe vorbereitet; noch nicht in PROD ausgeführt.
+
+
+## 11. PROD-Ausführung und Nachkontrolle – 14.11.2026
+
+### Freigabe und Migration
+- Ausdrückliche Nutzerfreigabe zur Umsetzung und Dokumentation erhalten.
+- Direkt vor Ausführung wurde der freigegebene GitHub-Dateistand erneut geladen und geprüft.
+- Ausgeführte Datei: `supabase/migrations/20261114193000_e05_prod_paket_05_matchday_suspension_exception.sql`.
+- Git-Blob-SHA unmittelbar vor Ausführung: `5bf9e040b5fb5ba3faf2f1acec9400b3efeb7df3`.
+- Supabase meldete `success: true`.
+- Tatsächlicher PROD-Migrationseintrag: Version `20261114202342`, Name `e05_prod_paket_05_matchday_suspension_exception_20261114`. Die Supabase-generierte Version weicht vom Dateipräfix `20261114193000` ab; maßgeblich ist der registrierte PROD-Eintrag.
+
+### Read-only Nachkontrolle
+- Tabelle `training_suspension_exceptions` vorhanden; RLS aktiv; genau eine SELECT-Policy.
+- Drei Indizes vorhanden.
+- Audit-Erweiterung vorhanden: `suspension_id` nullable, `exception_id` und `changed_by_snapshot` vorhanden.
+- Audit-Constraints `training_suspension_audit_one_subject_check` und `training_suspension_audit_exception_id_fkey` vorhanden.
+- Audit-SELECT-Policy enthält den Ausnahme-Pfad.
+- Grant-RPC vorhanden, Eigentümer `postgres`, SECURITY DEFINER, fester search_path `pg_catalog, public, auth`.
+- EXECUTE für `authenticated` vorhanden; für `anon` und `service_role` nicht vorhanden.
+- Tabellerechte wie vorgesehen: authenticated SELECT, kein direktes INSERT/UPDATE; anon kein SELECT; service_role SELECT.
+- Beide bestehenden append-only Audit-Trigger erhalten.
+- Datenbestand unverändert: 0 Ausnahmen, 0 Sperren, 0 Audit-Einträge. Keine fachlichen Testdaten in PROD angelegt.
+- Migration `20261114202342` in der PROD-Migrationshistorie registriert.
+
+### Abschluss und Testgrenze
+**Paket 5 wurde erfolgreich in Supabase PROD ausgeführt und die Struktur, RLS, Policies, Indizes, RPC-Sicherheit, Audit-Linkage, Trigger und Datenbestände wurden read-only nachkontrolliert.**
+
+Der isolierte PostgreSQL-17.6-CI-Lauf `43635963976` hat Migration, Assertions und guarded Rollback bestanden. Der CI-Test und die Strukturkontrolle ersetzen keinen realen PROD-End-to-End-Test der Grant-RPC mit tatsächlichen Teammitgliedern, offenen Sperren und geplanten Spieltagen. Dieser fachliche Praxistest steht nach Deployment noch aus.
