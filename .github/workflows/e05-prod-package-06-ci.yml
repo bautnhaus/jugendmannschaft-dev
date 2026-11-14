@@ -1,0 +1,70 @@
+name: E05 PROD Package 6 isolated PostgreSQL CI
+
+# Reusable isolated migration + rollback test; no Supabase project is contacted.
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'supabase/migrations/20261114210000_e05_prod_paket_06_atomic_exception_revocation.sql'
+      - 'supabase/rollback/20261114210000_e05_prod_paket_06_atomic_exception_revocation_rollback.sql'
+      - 'docs/prod-release/test-package-06/**'
+      - '.github/workflows/e05-prod-package-06-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  postgres-17:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: e05_package_05_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d e05_package_05_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: e05_package_05_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Prepare package 1–3 baseline
+        run: |
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-01/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-02/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-03/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql
+      - name: Prepare package 4 baseline
+        run: |
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-04/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-04/assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-04/rollback_assertions.sql
+          # Re-apply package 4 to establish the dependency baseline for package 6.
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql
+      - name: Apply package 5 prerequisite
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114193000_e05_prod_paket_05_matchday_suspension_exception.sql
+      - name: Apply exact PROD package 6 SQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114210000_e05_prod_paket_06_atomic_exception_revocation.sql
+      - name: Verify package 6 RPC, trigger lock and ACLs
+        run: psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-06/assertions.sql
+      - name: Verify guarded package 6 rollback
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/rollback/20261114210000_e05_prod_paket_06_atomic_exception_revocation_rollback.sql
+          psql -v ON_ERROR_STOP=1 -f docs/prod-release/test-package-06/rollback_assertions.sql
