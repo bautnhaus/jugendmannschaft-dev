@@ -765,3 +765,13 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - **Freigabegrenze:** Keine SQL-Ausführung in DEV/PROD; keine PROD-Migrationsregistrierung; `main` unverändert. Rollback und Ausführung benötigen jeweils die vorgesehenen gesonderten Freigaben.
 
 - **CI-Nachtrag Paket 5:** Isolierter PostgreSQL-17.6-Workflow `.github/workflows/e05-prod-package-05-ci.yml` sowie Struktur-/ACL-/Audit-Assertions und Rollback-Assertions unter `docs/prod-release/test-package-05/` ergänzt. Finaler Lauf [43635963976](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43635963976), Commit `c899805befdcd5e6e5d4affc68f052ba47bdf969`: success. Migration, Struktur-/ACL-/Audit-Assertions und guarded Rollback samt Nachassertions vollständig bestanden. Erste Fehlversuche waren Testhüllenfehler und sind korrigiert. Paket 5 ist technisch zur separaten PROD-Ausführungsfreigabe vorbereitet; noch nicht ausgeführt.
+
+
+### E05 PROD Paket 5 – Ausführung abgeschlossen (14.11.2026)
+
+- Supabase-Migration `20261114202342 e05_prod_paket_05_matchday_suspension_exception_20261114` erfolgreich registriert.
+- CI PostgreSQL 17.6: [Run 43635963976](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43635963976) erfolgreich, inklusive Rollback-Test.
+- Read-only PROD-Nachkontrolle: Tabelle, RLS/Policy, Indizes, Grant-RPC/ACL/search_path und Audit-Linkage korrekt; beide Audit-Trigger erhalten.
+- Keine fachlichen Datensätze verändert oder angelegt (0 Ausnahmen, 0 Sperren, 0 Audit-Einträge).
+- Ausführungsdossier: `docs/prod-release/E05_PROD_PAKET_05_SPIELTAGSAUSNAHMEN_2026-11-14.md`.
+- Funktionaler End-to-End-Praxistest der Ausnahmeerteilung steht noch aus.
