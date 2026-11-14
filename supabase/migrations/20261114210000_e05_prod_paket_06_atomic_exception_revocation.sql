@@ -9,18 +9,22 @@ begin;
 -- PRE-FLIGHT: nur exakt erwartete Objekte akzeptieren.
 do $preflight$
 begin
-  if to_regprocedure('public.revoke_suspension_exception(uuid,text)') is null then
-    raise exception 'Preflight: revoke_suspension_exception(uuid,text) fehlt';
+  if to_regclass('public.training_suspension_exceptions') is null
+     or to_regclass('public.training_suspensions') is null
+     or to_regclass('public.training_suspension_audit') is null
+     or to_regclass('public.matchdays') is null
+     or to_regclass('public.matchday_players') is null then
+    raise exception 'Preflight Paket 6: Paket-5-/Spieltags-Basistabellen fehlen';
   end if;
-  if to_regprocedure('public.prevent_suspended_matchday_nomination()') is null then
-    raise exception 'Preflight: prevent_suspended_matchday_nomination() fehlt';
-  end if;
-  if to_regclass('public.matchday_players') is null
-     or to_regclass('public.training_suspension_audit') is null then
-    raise exception 'Preflight: benötigte Tabellen fehlen';
-  end if;
-  if to_regclass('public.matchday_players') is null then
-    raise exception 'Preflight: matchday_players fehlt';
+  if to_regprocedure('public.revoke_suspension_exception(uuid,text)') is not null
+     or to_regprocedure('public.prevent_suspended_matchday_nomination()') is not null
+     or exists (
+       select 1 from pg_trigger
+       where tgrelid='public.matchday_players'::regclass
+         and tgname='matchday_players_prevent_suspended_nomination'
+         and not tgisinternal
+     ) then
+    raise exception 'Preflight Paket 6: Widerrufs-RPC oder Nominierungsschutz ist bereits ganz/teilweise installiert; zuerst manuell abgleichen';
   end if;
 end;
 $preflight$;
