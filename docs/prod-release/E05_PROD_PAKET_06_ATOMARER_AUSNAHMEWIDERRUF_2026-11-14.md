@@ -71,3 +71,29 @@ Nach PROD-Ausführung:
 ## 7. Freigabegrenze
 
 Dieses Paket ist zur Prüfung und ausdrücklichen Freigabe vorbereitet. Keine SQL-Ausführung in DEV oder PROD, keine Änderung an `main`. Die Freigabe zur Vorbereitung ist keine Ausführungsfreigabe.
+
+
+## 8. Isolierter PostgreSQL-CI-Test
+
+- Workflow: `.github/workflows/e05-prod-package-06-ci.yml`
+- Lauf: [GitHub Actions 43638965684](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43638965684)
+- Commit: `0c6eba7b873e424de2b56ae887eb0550b8342691`
+- PostgreSQL: 17.6
+- Ergebnis: `success`
+
+Erfolgreich ausgeführt:
+1. Paket-1–3-Baseline.
+2. Paket-4-Baseline und Paket 5.
+3. Matchday-Players-Testfixture.
+4. Paket-6-Migration.
+5. Assertions für RPC, Advisory-Lock, Nominierungstrigger und ACL.
+6. Guarded Paket-6-Rollback.
+7. Rollback-Assertions.
+
+Während der Vorbereitung wurden zwei reale Abweichungen der isolierten Testbasis korrigiert: Die PROD-Baseline enthält nach Paket 5 noch keine `matchday_players`-Tabelle in der CI-Fixture und Paket 6 muss den fehlenden Nominierungsschutz-Trigger in PROD selbst anlegen. Der finale Lauf enthält die angepasste Fixture und bestand.
+
+**Testgrenze:** Der CI-Lauf prüft Migration, Funktionstext/ACL, Triggerinstallation und Rollback auf PostgreSQL 17.6. Er führt keine authentifizierten End-to-End-Widerrufe mit echten Rollen-/Spieler-/Spieltagdaten und keinen echten parallelen Transaktionen durch. Diese fachlichen Tests bleiben vor einem späteren Frontend-Rollout in DEV zu absolvieren.
+
+## 9. Freigabestatus
+
+Paket 6 ist nach erfolgreichem isoliertem CI-Lauf zur ausdrücklichen PROD-Ausführungsfreigabe vorbereitet. Es wurde weder in DEV noch PROD ausgeführt. GitHub `main` bleibt unverändert.
