@@ -22,7 +22,14 @@ begin
      or to_regclass('public.training_suspension_exceptions') is not null
      or to_regprocedure('public.grant_suspension_exception(uuid,uuid,text)') is not null
      or to_regprocedure('public.revoke_suspension_exception(uuid,text)') is not null
-     or to_regprocedure('public.correct_suspension(uuid,uuid,text)') is not null then
+     or to_regprocedure('public.correct_suspension(uuid,uuid,text)') is not null
+     or to_regprocedure('public.e05_assign_player_suspensions(uuid,uuid,uuid)') is not null
+     or to_regprocedure('public.e05_reconcile_suspensions_after_event_correction(uuid,uuid,text)') is not null
+     or to_regprocedure('public.schedule_early_suspension_reset(uuid,uuid,text)') is not null
+     or to_regprocedure('public.cancel_early_suspension_reset(uuid,text)') is not null
+     or to_regprocedure('public.prevent_suspended_matchday_nomination()') is not null
+     or to_regclass('public.matchday_early_suspension_resets') is not null
+     or to_regclass('public.club_suspension_settings') is not null then
     raise exception 'Rollback Paket 3 abgebrochen: Folgepakete/Abhängigkeiten sind installiert';
   end if;
   execute 'select count(*) from public.training_behavior_events' into v_events;
