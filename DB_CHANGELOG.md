@@ -748,3 +748,17 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - **Testgrenze:** isolierter CI-Test prüft Migration, Struktur, ACL/RPC-Verhalten, Konfigurationshierarchie und Rollback. Vollständige Abläufe mit echten offenen Sperren und realen Spieltagen wurden nicht in PROD ausgelöst; diese bleiben durch DEV-Abnahme dokumentiert.
 - **Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14.md`.
 - **Ergebnis:** erfolgreich ausgeführt und read-only nachkontrolliert.
+
+
+## E05 PROD Paket 5 – Spieltagsausnahmen bei Sperren (14.11.2026)
+
+- **Status:** Freigabekandidat in `develop` vorbereitet; nicht ausgeführt.
+- **DEV-Referenz:** Supabase-Migrationen `20261108160747 e05_package_05_matchday_suspension_exception` und `20261108161109 e05_package_05_fix_exception_team_snapshot`.
+- **PROD-Migration:** `supabase/migrations/20261114193000_e05_prod_paket_05_matchday_suspension_exception.sql`.
+- **Rollback:** `supabase/rollback/20261114193000_e05_prod_paket_05_matchday_suspension_exception_rollback.sql`.
+- **Nachkontrolle:** `docs/prod-release/E05_PROD_PAKET_05_SPIELTAGSAUSNAHMEN_TESTQUERIES_2026-11-14.sql`.
+- **Freigabedokument:** `docs/prod-release/E05_PROD_PAKET_05_SPIELTAGSAUSNAHMEN_2026-11-14.md`.
+- **Quelle:** finale DEV-Live-Definition der RPC `grant_suspension_exception(uuid,uuid,text)`, Tabellenspalten, Constraints, Indizes, SELECT-RLS-Policy und ACL read-only am 14.11.2026 ausgelesen. PROD-Preflight bestätigt: Pakete 1–4 vorhanden; Ausnahmetabelle und Grant-RPC fehlen; Sperren- und Auditbestand derzeit 0.
+- **Umfang:** Ausnahmetabelle, Snapshot-Felder, Indizes/Constraints, SELECT-RLS, SECURITY DEFINER Grant-RPC mit Pflichtbegründung, Team-/Saison-/Spieltagvalidierung, Audit und Neuzuordnung über Paket-4-Funktion.
+- **Wichtige Transparenz:** Die ursprünglichen DEV-Migrationsdateien wurden über die registrierten Versionsnummern identifiziert; die PROD-Migration ist keine byte-identische Kopie, sondern konsolidiert den finalen live ausgelesenen DEV-Stand beider Migrationen.
+- **Freigabegrenze:** Keine SQL-Ausführung in DEV/PROD; keine PROD-Migrationsregistrierung; `main` unverändert. Rollback und Ausführung benötigen jeweils die vorgesehenen gesonderten Freigaben.
