@@ -111,7 +111,7 @@ These remain separate follow-up packages.
 - **Wichtige Abgrenzung:** Der CI-Lauf belegt die Migration, Struktur, Rechte, Konfigurations-RPCs, No-op-Verhalten und Rollback in isoliertem PostgreSQL. Die vollständigen Szenarien mit tatsächlich offenen Sperren und echten Spieltagszuordnungen sind durch das DEV-Abnahmeprotokoll belegt, nicht vollständig erneut in CI nachgestellt.
 - **Finale statische Prüfung:** Migration und Rollback sind transaktional; Rollback ohne `CASCADE`; Daten- und Folgepaket-Gates vorhanden. Migration und Rollback wurden im erfolgreichen CI-Lauf exakt ausgeführt.
 
-**Aktueller Status: CI und finale SQL-/Rollback-Prüfung bestanden. Paket 4 liegt zur ausdrücklichen PROD-Freigabe vor. Nicht in PROD ausgeführt.**
+**Zwischenstand vor Freigabe:** CI und finale SQL-/Rollback-Prüfung bestanden; PROD-Ausführung stand zu diesem Zeitpunkt noch aus. Der tatsächliche PROD-Ausführungsstand ist in Abschnitt 9 dokumentiert.
 
 
 ## 9. PROD-Ausführung und Nachkontrolle – 14.11.2026
@@ -134,6 +134,7 @@ These remain separate follow-up packages.
 - Interner Helper `e05_assign_player_suspensions(uuid,uuid,uuid)` ist für authenticated nicht ausführbar.
 - Zwei append-only Audit-Trigger weiterhin vorhanden.
 - Datenbestand unverändert: 1 Club, 1 Team, 0 Sperren, 0 Sperren-Audit-Einträge. Keine bestehenden Sperr- oder Spieltagsdaten wurden verändert.
+- Konfigurationsbestand nach Migration: 0 Club-Standard-Konfigurationen, 0 Team-Overrides und 0 Team-Spielarten-Einträge. Es wurde bewusst keine fachliche Voreinstellung erfunden oder eingetragen. Bis zur späteren Einrichtung einer Club-Standardliste bzw. eines Team-Overrides sind keine Spielarten als sperrrelevant konfiguriert.
 - Migration `20261114184029` ist in der PROD-Migrationshistorie registriert.
 
 ### Supabase Advisor – Einordnung nach Paket 4
