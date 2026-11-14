@@ -1057,15 +1057,19 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Vollständige Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_03_SPERRFUNDAMENT_2026-11-14.md`.
 
 
-### E05 PROD Paket 4 – Spieltagszuordnung und Ableistung (Freigabe ausstehend)
+### DB-MIG-2026-015 – E05 PROD Paket 4: Spieltagszuordnung und Ableistung
 
-- **Status:** technischer Freigabekandidat auf `develop`; nicht in PROD ausgeführt.
-- **DEV-Quelle:** `docs/E05_PAKET_04_SPIELTAG_ZUORDNUNG_UND_ABLEISTUNG_2026-11-08.sql`; DEV-Abnahme `docs/E05_PAKET_04_FREIGABE_UND_AUSFUEHRUNG_2026-11-08.md`; DEV-Migration `20261108133922`.
-- **PROD-Migration:** `supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql`; SHA `9618e5a3431d88b88eeee5efba6efa94813cbfae`.
-- **Rollback:** `supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql`; SHA `859eb68407373b4a6c8940ed3c8f9c9b640efe0c`.
-- **Nachkontrolle:** `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14_TESTQUERIES.sql`; SHA `bf6707f8b556fb64f5e3938baed5994bb883ac19`.
-- **Finaler CI-Lauf:** [Run 43624723426](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43624723426), PostgreSQL 17.6, success; CI-Commit `16b4d93a2ca796db5ab3f3af0bc01a1341e365dc`.
-- **PROD read-only preflight:** Paket 1–3 vorhanden; benötigte Tabellen/Spalten/Kontexthelfer vorhanden; Paket-4-Objekte fehlen; 1 Club/1 Team; 0 Sperren und 0 Sperren-Audit-Einträge.
-- **Umfang:** Club-Standard und vollständiger Team-Override für relevante Spielarten; automatische Zuordnung offener Sperren; Ableistung nur nach relevantem Matchday-Status `done`; gelb vor rot; Auditierung.
-- **Testgrenze:** CI prüft Struktur/ACL/RPC-Konfiguration und Rollback isoliert. Vollständige funktionale Fälle mit echten offenen Sperren/Matchdays sind im DEV-Abnahmeprotokoll dokumentiert.
-- **Freigabe:** finale technische Prüfung abgeschlossen; ausdrückliche PROD-Ausführungsfreigabe steht aus. Unmittelbarer Preflight/Hash-Abgleich erfolgt erst nach Freigabe.
+- **Ausgeführt:** 14.11.2026 in Supabase PROD nach ausdrücklicher Nutzerfreigabe.
+- **Supabase-Migration:** Version `20261114184029`, Name `e05_prod_paket_04_matchday_lifecycle_20261114`. Supabase-generierte Version weicht vom lokalen Dateipräfix ab; dies ist der tatsächliche PROD-Ledger-Eintrag.
+- **SQL-Datei:** `supabase/migrations/20261114190000_e05_prod_paket_04_matchday_lifecycle.sql`; Git-Blob-SHA `9618e5a3431d88b88eeee5efba6efa94813cbfae`.
+- **Rollback-Datei:** `supabase/rollback/20261114190000_e05_prod_paket_04_matchday_lifecycle_rollback.sql`; Git-Blob-SHA `859eb68407373b4a6c8940ed3c8f9c9b640efe0c`. Nicht ausgeführt.
+- **Nachkontrolle:** `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14_TESTQUERIES.sql`; Git-Blob-SHA `bf6707f8b556fb64f5e3938baed5994bb883ac19`.
+- **CI:** [Run 43624723426](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43624723426), PostgreSQL 17.6, vollständig erfolgreich.
+- **PROD-Struktur:** drei Konfigurationstabellen vorhanden, RLS auf allen aktiv, drei SELECT-Policies, keine direkten Schreibrechte für authenticated, kein SELECT für anon.
+- **RPCs:** vier vorgesehene RPCs SECURITY DEFINER mit festem search_path; EXECUTE nur für authenticated (nicht anon). Interner Zuordnungs-Helper nicht für authenticated ausführbar.
+- **Audit:** zwei append-only Trigger auf `training_suspension_audit` vorhanden.
+- **Datenbestand nach Ausführung:** 1 Club, 1 Team, 0 Sperren, 0 Sperren-Audit-Einträge; keine bestehenden Sperr-/Spieltagdaten verändert.
+- **Advisor:** Health ohne Findings. Security-/Performance-Warnungen umfassen überwiegend projektweite bzw. bereits vorhandene Themen; Paket-4-bezogene Details sind im Ausführungsdossier festgehalten. Keine pauschalen Änderungen an anderen Funktionen/Policies.
+- **Testgrenze:** isolierter CI-Test prüft Migration, Struktur, ACL/RPC-Verhalten, Konfigurationshierarchie und Rollback. Vollständige Abläufe mit echten offenen Sperren und realen Spieltagen wurden nicht in PROD ausgelöst; diese bleiben durch DEV-Abnahme dokumentiert.
+- **Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14.md`.
+- **Ergebnis:** erfolgreich ausgeführt und read-only nachkontrolliert.
