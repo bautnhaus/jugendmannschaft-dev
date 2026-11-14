@@ -76,13 +76,6 @@ end
 $negative$;
 rollback;
 
-delete from public.training_suspensions where id::text like '40000000-%';
-delete from public.seasons where id='30000000-0000-0000-0000-000000000001';
-delete from public.team_member_roles where user_id::text like '10000000-%';
-delete from public.global_user_roles where user_id::text like '10000000-%';
-delete from public.profiles where id::text like '10000000-%';
-delete from public.teams where id='20000000-0000-0000-0000-000000000001';
-delete from auth.users where id::text like '10000000-%';
 do $clean$
 begin
  if exists(select 1 from public.team_season_closure_audit) then raise exception 'CI left audit fixtures behind'; end if;
