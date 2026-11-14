@@ -127,7 +127,7 @@ Es wurde kein Rollback ausgeführt oder getestet. Dieser Abschnitt ist ein Wiede
 - [x] PROD-spezifisches Vorbedingungs-Gate ergänzt
 - [x] Release-SQL-Entwurf erstellt
 - [ ] SQL in einer isolierten PostgreSQL-Prüfumgebung ausgeführt/geparst
-- [ ] Vollständiger Rollback-/Wiederherstellungsweg ausführbar verifiziert
+- [x] Guarded Rollback in isolierter PostgreSQL-Umgebung ausführbar verifiziert (inkl. Daten- und Abhängigkeits-Schutz)
 - [ ] Finale fachliche/technische PROD-Freigabe erteilt
 - [ ] In PROD ausgeführt
 - [ ] Nachkontrollen bestanden und protokolliert
@@ -135,3 +135,46 @@ Es wurde kein Rollback ausgeführt oder getestet. Dieser Abschnitt ist ein Wiede
 **Aktueller Status: vorbereitet, aber noch nicht ausführungsbereit und nicht freigegeben.**
 
 Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` wurde durch diese Vorbereitung vorgenommen. Die beiden neuen Dokumente liegen ausschließlich auf GitHub `develop`.
+
+
+## 10. Isolierter PostgreSQL-17.6-Test – abgeschlossen
+
+- **GitHub Actions Workflow:** `.github/workflows/e05-prod-package-01-test.yml`
+- **Erfolgreicher Run:** [43615149537](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43615149537)
+- **Commit mit Testartefakten:** `684048af89e5d90337537c5e78889cc8ff346ff3`
+- **Testumgebung:** temporärer PostgreSQL-17.6-Dienst in GitHub Actions; keine Verbindung zu Supabase DEV oder PROD.
+- **Ergebnis:** alle Schritte erfolgreich.
+
+| Testschritt | Ergebnis |
+|---|---|
+| Supabase-ähnliche Fixture mit Rollen, Auth-Schema und Hilfsfunktionen | Bestanden |
+| Exaktes PROD-Paket-SQL angewendet | Bestanden |
+| Tabellen, RLS, SELECT-Policies, Indizes und Trigger geprüft | Bestanden |
+| Rechte für authenticated, anon und service_role geprüft | Bestanden |
+| Append-only-Trigger durch UPDATE-Versuch geprüft | Bestanden – SQLSTATE 55000 |
+| Rollback verweigert bei vorhandenen Ereignisdaten | Bestanden |
+| Rollback verweigert bei vorhandener Paket-2-RPC | Bestanden |
+| Kontrollierter Rollback ohne Daten und ohne abhängige Pakete | Bestanden |
+| Nachkontrolle: alle Paket-1-Objekte entfernt | Bestanden |
+
+Der Test wurde vollständig auf einer isolierten temporären Datenbank ausgeführt. Er ist kein Ersatz für die abschließende Vorbedingungsprüfung direkt in PROD, bestätigt aber Syntax, Erstellungsablauf, Sicherheitsobjekte und den getesteten Rollback-Pfad des Release-Artefakts.
+
+## 11. Rollback-Artefakt
+
+- **Datei:** `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14_ROLLBACK.sql`
+- **Regeln:** kein `CASCADE`; Abbruch bei Datenbestand, vorhandener Paket-2-RPC oder Sperrenobjekten; Rückbau nur vor Installation abhängiger Pakete.
+- **Test:** Daten- und Abhängigkeits-Gates wurden im CI jeweils absichtlich ausgelöst und haben den Rückbau blockiert. Anschließend wurde der saubere Rückbau in der isolierten Datenbank erfolgreich ausgeführt.
+- **Grenze:** Der Test simuliert keine Wiederherstellung von Ereignisdaten aus einem PROD-Backup. Vor einer späteren Ausführung muss der aktuelle PROD-Backup-/Recovery-Stand weiterhin separat geprüft werden.
+
+## 12. Technische Abschlussprüfung
+
+Die finale Prüfung bestätigt:
+- SQL entspricht der tatsächlich ausgeführten DEV-Fassung, ergänzt um ein PROD-Vorbedingungs-Gate.
+- Abweichende, nicht ausgeführte Paket-1-Entwurfsdatei wird ausdrücklich ausgeschlossen.
+- Keine späteren Audit-Snapshot-Spalten oder Sperrenobjekte werden vorgezogen.
+- RLS ist für beide neuen Tabellen aktiviert; Policies beschränken SELECT auf Teammitgliedschaft bzw. ausgewählten Teamkontext.
+- API-Rollen erhalten keine direkten Schreibrechte.
+- Das Audit ist gegen UPDATE, DELETE und TRUNCATE geschützt.
+- Rollback stoppt bei erkannten abhängigen Objekten oder Datenbestand.
+
+**Ergebnis:** Die drei technischen Restpunkte sind abgeschlossen. Paket 1 ist als Release-Kandidat zur Nutzerfreigabe vorbereitet. Die PROD-Ausführung selbst bleibt gesperrt, bis eine separate ausdrückliche Freigabe vorliegt und die unmittelbar vorherige PROD-Backup-/Vorbedingungsprüfung bestanden ist.
