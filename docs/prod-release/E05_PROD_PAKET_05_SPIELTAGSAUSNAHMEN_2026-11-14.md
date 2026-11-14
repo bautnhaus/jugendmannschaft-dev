@@ -37,7 +37,7 @@ Die Migration konsolidiert den finalen DEV-Live-Stand der beiden registrierten D
 ## 4. Sicherheits- und Datenwirkung
 
 - Kein Update/Löschen bestehender Sperren, Spieler oder Spieltage durch die Migration.
-- Keine bestehenden RLS-Policies auf anderen Tabellen werden geändert.
+- Die bestehende RLS-Policy auf `training_suspension_audit` wird gezielt erweitert, damit Audit-Einträge mit `exception_id` für berechtigte Teammitglieder sichtbar sind; andere Policies bleiben unverändert.
 - Kein Widerruf und keine automatische Nominierungsentfernung.
 - RPC validiert Authentifizierung, Pflichtbegründung, offenen Sperrenstatus, Team-/Saisonzugehörigkeit, aktuellen Sperrspieltag und Status `planned`.
 - RPC serialisiert Änderungen über Spieler- und Sperrenzeilensperren.
@@ -69,3 +69,7 @@ Dieses Paket ist zur Prüfung und ausdrücklichen Freigabe vorbereitet. Es wurde
 ## 8. Abweichungshinweis
 
 Die ursprünglichen DEV-Migrationsdateien wurden anhand ihrer registrierten Versionsnummern identifiziert. Die PROD-Migration wurde aus dem aktuell live ausgelesenen DEV-Funktions- und Tabellenschema zusammengestellt, nicht als byte-identische Kopie der ursprünglichen DEV-Dateien. Die Snapshot-Korrektur aus der zweiten DEV-Migration ist im finalen Live-Stand enthalten. Diese Konsolidierung ist im Rahmen der Freigabe bewusst offengelegt.
+
+## 9. Ergänzende Audit-Abweichung gegenüber PROD
+
+Der erneute Schemaabgleich hat eine bislang nicht dokumentierte Paket-4/5-Abweichung sichtbar gemacht: In PROD ist `training_suspension_audit.suspension_id` noch NOT NULL; `exception_id` und `changed_by_snapshot` fehlen. Der DEV-Live-Stand erlaubt genau einen Bezug je Audit-Zeile (Sperre oder Ausnahme). Ohne diese Anpassung würde die Grant-RPC beim Schreiben des Ausnahme-Audits in PROD scheitern. Paket 5 enthält daher die notwendige, eng begrenzte Audit-Schema- und Policy-Erweiterung. Der Rollback stellt die bisherige Policy und NOT-NULL-Eigenschaft wieder her und bricht ab, sobald Ausnahme-Auditdaten existieren.
