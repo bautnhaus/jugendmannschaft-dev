@@ -690,3 +690,12 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - **Betriebsgrenze:** Paket 3 aktiviert automatische Sperrenerzeugung, enthält aber noch keine Spieltagszuordnung, Ausnahmen, Widerruf, Korrektur oder spätere Trainingsdatum-Chronologie. Es ist kein vollständiger Trainerworkflow. Folgepakete bleiben separat vorzubereiten und freizugeben.
 - **Freigabegrenze:** Nutzerfreigabe zur Vorbereitung liegt vor; PROD-Ausführungsfreigabe liegt nicht vor. Keine SQL-Ausführung in PROD oder DEV. GitHub `main` unverändert.
 - **Nächste Gates:** CI-Ergebnis prüfen; SQL/rollback final reviewen; danach vollständiges Freigabepaket vorlegen. Erst nach separater ausdrücklicher Zustimmung unmittelbar vor Ausführung PROD-Preflight/Hash-Abgleich und Migration ausführen.
+
+
+### E05 PROD Paket 3 – isolierter CI-Lauf erfolgreich (14.11.2026)
+
+- **Workflow:** [Run 43620391604](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620391604), Commit `4b36272b781c3afa648abdd3dce7327728ebbdfb`, PostgreSQL 17.6, Ergebnis `success`.
+- **Prüfumfang:** Baseline Paket 1/2, Paket-3-Migration, Struktur/RLS/Policies/ACL/Trigger, gelbe Karte 5 und rote Karte, Audit-Fehler mit atomarem Rollback, guarded Paket-3-Rollback und Wiederherstellung der Paket-2-RPC.
+- **Vorherige Fehlversuche:** Drei Läufe scheiterten im Fixture-Bootstrap an doppelter Rollenerstellung (`anon` bereits vorhanden). Ursache korrigiert; der erfolgreiche Lauf wurde auf dem bereinigten Fixture vollständig ausgeführt.
+- **Grenze:** isolierte PostgreSQL-17.6-Validierung, keine Verbindung zu Supabase PROD und kein Backup-/PITR-Nachweis.
+- **Status:** CI-Gate bestanden. Paket 3 bleibt bis zur abschließenden SQL-/Rollback-Review und separaten Nutzerfreigabe nicht zur PROD-Ausführung freigegeben.
