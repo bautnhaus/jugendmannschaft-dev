@@ -10,7 +10,8 @@ begin
    where n.nspname='public' and p.proname in (
     'create_matchday_suspension_exception','revoke_matchday_suspension_exception',
     'close_team_season','schedule_early_suspension_reset','cancel_early_suspension_reset',
-    'correct_training_behavior_event','serve_matchday_suspensions',
+    'correct_training_behavior_event','grant_suspension_exception','revoke_suspension_exception',
+    'correct_suspension','e05_reconcile_suspensions_after_event_correction','serve_matchday_suspensions',
     'e05_assign_player_suspensions','assign_next_suspension_matchday'
    )) then
    raise exception 'Rollback blocked: downstream E05 functions are installed';
