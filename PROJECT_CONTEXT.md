@@ -1,3 +1,15 @@
+# E05 – PROD Paket 1 erfolgreich ausgerollt (14.11.2026)
+
+- Nach ausdrücklicher Nutzerfreigabe wurde E05 PROD Paket 1 „Trainingsereignisse und Ereignis-Audit“ in Supabase PROD `qdugtpzgefpswnnqbusd` ausgeführt.
+- Supabase-Migration: `20261114162646`, `e05_prod_paket_01_trainingsereignisse_20261114`; Ergebnis `success: true`.
+- Read-only-Nachkontrolle bestanden: beide Tabellen, RLS, zwei SELECT-Policies, erwartete Indizes und Audit-Trigger vorhanden; Rechte für `authenticated`, `anon` und `service_role` wie vorgesehen; beide Tabellen leer.
+- Supabase DEV und GitHub `main` blieben unverändert.
+- SQL, Rollback und Ausführungsnachweis: `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.sql`, gleichnamige `_ROLLBACK.sql` und Markdown-Dokumentation.
+- Backup-/PITR-Status wurde über die verfügbaren Werkzeuge nicht unabhängig geprüft; dies ist als Nachweisgrenze dokumentiert. Der isolierte PostgreSQL-Rollback-Test war erfolgreich.
+- Nächster Schritt: E05 PROD Paket 2 chronologisch vorbereiten; keine Ausführung ohne separate Freigabe.
+
+---
+
 ## Entscheidung – Audit-Namensauflösung vergangener Ereignisse (14.11.2026)
 
 Der Nutzer akzeptiert die eingeschränkte Namensauflösung bei vergangenen Ereignis-/Sperren-Auditzeilen, denen ein gespeicherter Actor-Snapshot fehlt. Diese Einschränkung wird als bekannte historische Grenze dokumentiert. Keine rückwirkende Datenkorrektur, keine SQL-/Schema-/RLS-Änderung und keine zusätzliche Migration. Eine mögliche Verbesserung für künftig erzeugte Audit-Einträge ist nicht Teil dieser Entscheidung und bedarf bei Bedarf einer separaten Spezifikation und Freigabe.
