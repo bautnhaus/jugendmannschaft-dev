@@ -784,3 +784,12 @@ Der technische Review des vorbereiteten E05-Schemafundaments ist in `docs/E05_TE
 - Migration/Rollback/Assertions/Workflow liegen unter `supabase/migrations/`, `supabase/rollback/`, `docs/prod-release/test-package-06/` und `.github/workflows/e05-prod-package-06-ci.yml`.
 - Isolierter PostgreSQL-17.6-CI-Lauf [43638965684](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43638965684) erfolgreich, einschließlich guarded Rollback.
 - Keine DEV-/PROD-Ausführung; GitHub `main` unverändert.
+
+### E05 PROD Paket 6 – ausgeführt am 14.11.2026
+
+- Supabase PROD Migration `20261114211343 e05_prod_paket_06_atomic_exception_revocation_20261114` erfolgreich.
+- Widerrufs-RPC und synchronisierter Sperr-Nominierungsschutz-Trigger strukturell/ACL-seitig nachkontrolliert.
+- Keine Produktivdaten verändert; keine Testdaten erzeugt.
+- End-to-End- und Parallelitätstests bleiben vor Frontend-Rollout in DEV/isolierter Testumgebung offen.
+- GitHub `main` und Frontend-Index weiterhin unverändert.
+- Details: `docs/prod-release/E05_PROD_PAKET_06_ATOMARER_AUSNAHMEWIDERRUF_2026-11-14.md`.
