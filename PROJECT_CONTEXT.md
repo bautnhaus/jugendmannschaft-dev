@@ -1,3 +1,14 @@
+# E05 PROD Rollout – Stand 14.11.2026 nach Paket 2
+
+- **Paket 1 – Trainingsereignisse/Ereignis-Audit:** erfolgreich in Supabase PROD ausgeführt. Migration `20261114162646`, Name `e05_prod_paket_01_trainingsereignisse_20261114`. Read-only Nachkontrolle bestanden. Exakter ausgeführter SQL-Blob: `6f39812500ac8ce427d3330a8281af941b259b90`; CI PostgreSQL 17.6 Run `43615149537` erfolgreich.
+- **Paket 2 – Trainingsereignis-Vergabe-RPC:** nach ausdrücklicher Nutzerfreigabe erfolgreich in Supabase PROD ausgeführt. Migration `20261114165213`, Name `e05_prod_paket_02_trainingsevent_rpc_20261114`. RPC Owner postgres, SECURITY DEFINER, fester search_path; EXECUTE ausschließlich für authenticated. Keine Sperrenlogik aus Paket 3 enthalten. CI PostgreSQL 17.6 Run `43616072353` erfolgreich.
+- **Paket 1 und 2:** SQL-, Rollback-, Freigabe-/Ausführungsdokumente und CI-Nachweise auf `develop`; vollständige Ausführungsjournaleinträge in `DB_MIGRATION_LOG.md`.
+- **Umgebungsgrenzen:** Supabase DEV und GitHub `main` blieben bei beiden PROD-Ausführungen unverändert. Kein Rollback in PROD ausgeführt.
+- **Backup-/PITR-Nachweis:** Status konnte über die verfügbaren Projektwerkzeuge nicht unabhängig ausgelesen werden; nicht als geprüft ausweisen.
+- **Nächster Schritt:** E05 PROD Paket 3 chronologisch vorbereiten. Keine Ausführung ohne eigene Freigabe.
+
+---
+
 # E05 – PROD Paket 1 erfolgreich ausgerollt (14.11.2026)
 
 - Nach ausdrücklicher Nutzerfreigabe wurde E05 PROD Paket 1 „Trainingsereignisse und Ereignis-Audit“ in Supabase PROD `qdugtpzgefpswnnqbusd` ausgeführt.
