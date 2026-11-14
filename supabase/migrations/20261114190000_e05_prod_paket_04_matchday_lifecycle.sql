@@ -34,12 +34,18 @@ begin
  if exists (
    select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
    where n.nspname='public' and p.proname in (
-    'create_matchday_suspension_exception',
-    'revoke_matchday_suspension_exception',
+    'grant_suspension_exception',
+    'revoke_suspension_exception',
     'close_team_season',
     'schedule_early_suspension_reset',
     'correct_training_behavior_event',
     'e05_reconcile_suspensions_after_event_correction'
+   )
+ ) or exists (
+   select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace
+   where n.nspname='public' and c.relname in (
+    'training_suspension_exceptions','team_season_closure_audit',
+    'matchday_early_suspension_resets','matchday_early_suspension_reset_audit'
    )
  ) then
    raise exception 'E05 Paket 5+ dependency already exists; verify package sequence before installing package 4';
