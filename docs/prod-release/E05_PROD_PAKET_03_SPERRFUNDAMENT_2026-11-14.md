@@ -4,7 +4,7 @@
 - **Zielumgebung:** Supabase PROD `qdugtpzgefpswnnqbusd` (PostgreSQL 17.6)
 - **DEV-Referenz:** Supabase DEV `pzazqvvoruqnqhcorbwx`
 - **Branch:** ausschließlich `develop`
-- **Status:** Release-Kandidat in Vorbereitung; **NICHT in PROD ausgeführt**
+- **Status:** Technische Abschlussprüfung bestanden; **zur ausdrücklichen PROD-Freigabe vorgelegt; NICHT in PROD ausgeführt**
 - **Freigabe:** Nutzer hat die Vorbereitung beauftragt. Eine Freigabe zur PROD-Ausführung liegt noch nicht vor.
 - **Chronologie:** E05 Paket 1 und 2 sind in PROD registriert. Paket 3 ist das nächste fehlende Fundamentpaket.
 - **Grundsatz:** keine Änderungen an DEV oder GitHub `main`; keine PROD-Ausführung ohne separate ausdrückliche Freigabe.
@@ -125,7 +125,7 @@ Paket 3 aktiviert die automatische Sperrenerzeugung, enthält aber selbst noch k
 - [x] Read-only Nachkontroll-SQL erstellt.
 - [x] Isolierte PostgreSQL-17.6-Fixture, Assertions und CI-Workflow erstellt.
 - [x] CI-Lauf erfolgreich abgeschlossen und geprüft (Run 43620391604, Commit 4b36272b781c3afa648abdd3dce7327728ebbdfb).
-- [ ] Finale SQL-/Rollback-Prüfung nach CI.
+- [x] Finale SQL-/Rollback-Prüfung nach CI.
 - [ ] Nutzerfreigabe zur PROD-Ausführung.
 - [ ] Unmittelbare PROD-Vorprüfung und Hash-Abgleich.
 - [ ] PROD-Migration ausgeführt.
@@ -141,4 +141,33 @@ Paket 3 aktiviert die automatische Sperrenerzeugung, enthält aber selbst noch k
 - **Fehlerbehebung vor dem erfolgreichen Lauf:** Die ersten drei Läufe scheiterten ausschließlich beim Fixture-Setup, weil Paket-3-Bootstrap Rollen und Auth-Objekte erneut anlegte, die bereits von Paket 1/2 erzeugt wurden (`role "anon" already exists`). Das Bootstrap wurde auf die noch fehlende Team-Fixture reduziert. Der erfolgreiche Lauf wurde anschließend mit dem korrigierten Fixture vollständig neu ausgeführt.
 - **Testgrenze:** Dies ist ein isolierter PostgreSQL-Test, kein Supabase-PROD-Test und kein Nachweis eines PROD-Backups. Er belegt die getesteten Paket-3-SQL-Pfade innerhalb der Fixture.
 
-**Aktueller Status: CI erfolgreich; technischer Freigabekandidat bereit für abschließende SQL-/Rollback-Review und Nutzerfreigabe. Nicht in PROD ausgeführt.** Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` durch die Vorbereitung.
+## 10. Finale SQL-/Rollback-Prüfung – 14.11.2026
+
+### Unveränderliche Artefakt-Hashes
+- PROD-Migration: `supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql` – Git-Blob `7f519980342bcde70379d884144a231a864a9de2`.
+- Guarded Rollback: `supabase/rollback/20261114180000_e05_prod_paket_03_suspension_foundation_rollback.sql` – Git-Blob `2bef2818bce64fac90ca17c1d27794baeac69255`.
+- CI-Assertions: `docs/prod-release/test-package-03/assertions.sql` – Git-Blob `5eff3a6dd0da81f33c088d549c7d4163ce93e244`.
+- CI-Fixture: `docs/prod-release/test-package-03/bootstrap.sql` – Git-Blob `db2fcdc2fe18dfc7bbf50c3cd34a380d4655ac48`.
+- Die vier genannten Blobs wurden mit dem erfolgreichen CI-Commit `4b36272b781c3afa648abdd3dce7327728ebbdfb` verglichen; alle stimmen bytegenau mit den aktuellen Dateien auf `develop` überein. Der erfolgreiche CI-Lauf hat somit exakt diese Migration und dieses Rollback getestet.
+
+### Quell- und Rollbackvergleich
+- Der Funktionsblock `award_training_behavior_event(...)` in der PROD-Migration ist nach normalisiertem SQL-Text identisch mit dem Funktionsblock aus dem DEV-Paket-3-Quell-SQL.
+- Die Tabellen-/Index-/Trigger-/Policy-DDL der PROD-Migration ist nach normalisiertem SQL-Text identisch mit dem entsprechenden DEV-Paket-3-Quellabschnitt.
+- Der im Rollback wiederhergestellte Funktionsblock ist nach normalisiertem SQL-Text identisch mit der freigegebenen Paket-2-PROD-Baseline.
+- Beide Skripte enden mit `COMMIT`; die Migration besitzt ein transaktionales Preflight-Gate. Der Rollback verwendet kein `CASCADE`.
+
+### Unmittelbare read-only PROD-Nachprüfung
+- PostgreSQL-Version: 17.6.
+- Paket-1-Ereignis- und Audit-Tabellen vorhanden; beide enthalten aktuell 0 Datensätze.
+- Paket-2-RPC vorhanden; Owner `postgres`; SECURITY DEFINER; fester `search_path=pg_catalog, public, auth`; EXECUTE nur für `authenticated`, nicht für `anon` oder `service_role`.
+- Alle von der Migration/Funktion benötigten Spalten in `trainings`, `players`, `attendance`, `seasons`, `team_member_roles` und `global_user_roles` vorhanden.
+- Rollen-/Teamkontext-Helfer vorhanden.
+- Sperrentabellen, Audit-Guard und zugehörige Policies fehlen weiterhin wie erwartet.
+- Die PROD-Vorbedingungen sind zum Prüfzeitpunkt vollständig erfüllt. Das SQL prüft sie bei Ausführung erneut und bricht bei zwischenzeitlicher Abweichung ab.
+
+### Rollback-Betriebsgrenze
+- Das Rollback stellt den Schema-/Funktionsstand von Paket 2 wieder her, entfernt aber nicht selbst den Eintrag aus Supabase `schema_migrations`/Migrationshistorie. Falls ein Rollback nach erfolgreicher Registrierung erforderlich wird, muss die Migrationshistorie separat über den dafür vorgesehenen Supabase-Migrationsprozess abgeglichen werden. Keine manuelle Löschung von Migrationshistorieneinträgen als Teil dieses SQL-Rollbacks.
+- Das Rollback bricht ab, sobald Ereignis-/Auditdaten vorhanden sind oder Folgepaketobjekte installiert wurden. Bei Datenbestand ist Recovery/Restore statt Löschen erforderlich.
+- Der Backup-/PITR-Status von PROD konnte mit den verfügbaren Werkzeugen nicht unabhängig verifiziert werden. Vor der tatsächlichen Ausführung ist dieser Punkt im Supabase-Projekt zu kontrollieren.
+
+**Abschlussstatus: technische SQL-/Rollback-Prüfung bestanden; Paket 3 liegt zur ausdrücklichen PROD-Freigabe vor. Nicht in PROD ausgeführt.** Die unmittelbare Vorprüfung, Backup-/PITR-Kontrolle und Hash-Kontrolle sind vor Ausführung erneut vorzunehmen. Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` durch die Vorbereitung.
