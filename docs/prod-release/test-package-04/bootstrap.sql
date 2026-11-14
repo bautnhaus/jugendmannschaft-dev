@@ -17,3 +17,15 @@ as $$
 $$;
 revoke all on function public.can_manage_club_context(uuid) from public,anon;
 grant execute on function public.can_manage_club_context(uuid) to authenticated;
+
+-- Package 3 CI baseline does not include the app's matchday table.
+create table if not exists public.matchdays(
+ id uuid primary key,
+ team_id uuid not null,
+ season_id uuid,
+ match_date date not null,
+ opponent text,
+ kickoff_time time,
+ game_type text,
+ status text
+);
