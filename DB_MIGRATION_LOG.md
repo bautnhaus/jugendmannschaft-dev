@@ -983,3 +983,30 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Gegenstück in der anderen Umgebung:** DEV-Paket 1 wurde bereits am 08.11.2026 ausgeführt; DEV wurde bei diesem PROD-Lauf nicht verändert.
 - **GitHub-Dateien und Commit-SHAs:** Release-SQL `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.sql` – `52d4f13bb5c91d91efc30474eb9e47897331bbdc`; Rollback `..._ROLLBACK.sql` – `98b9341b6bdda96d60c6a57a547ed2e096347339`; Ausführungsdokumentation `...2026-11-14.md` – `39bcb03d3a39820692e1b660b1e7c40b8c749200`; zentrale Projektdokumentation – `b7e48ff52121007b3513dcd7c93a17fd7b722c3c`.
 - **Zusätzliche Hinweise:** Keine Änderung an GitHub `main`, Frontend oder bestehenden fachlichen Datensätzen. Nachfolgende E05-Pakete bleiben einzeln freigabepflichtig.
+
+
+### Ergänzender Nachweis – E05 PROD Paket 1: CI und unveränderlicher SQL-Blob
+
+- **Isolierter PostgreSQL-Test:** GitHub Actions Run `43615149537`, erfolgreich. Getestet wurden Paket-SQL, RLS, Policies, Indizes, Audit-Trigger, Tabellen-/Funktionsrechte, Append-only-Schutz und guarded Rollback einschließlich Daten-/Abhängigkeits-Gates.
+- **Exakter SQL-Inhalt, der vor der PROD-Ausführung vorlag:** Git-Blob `6f39812500ac8ce427d3330a8281af941b259b90`. Dieser historische Blob wurde erneut über die GitHub-Git-Blob-API abgerufen und geprüft. Der heute sichtbare Release-Dateikopf wurde nach Ausführung um den Erfolgsstatus ergänzt; daher ist der aktuelle Datei-Blob nicht mit dem historischen ausgeführten Blob gleichzusetzen.
+- **Dokumentationsstatus:** Die Freigabe-/Ausführungsdokumentation wurde am 14.11.2026 um diesen unveränderlichen Verweis, den CI-Run und die Nachweisgrenze Backup/PITR ergänzt. Der PROD-Backup-/PITR-Status konnte nicht unabhängig verifiziert werden.
+
+### DB-MIG-2026-013 – E05 PROD Paket 2: Trainingsereignis-Vergabe-RPC
+
+- **Ausführungsdatensatz:** PROD
+- **Datum/Uhrzeit:** 14.11.2026, 17:52:13 CET (aus Supabase-Migrationsversion abgeleitet)
+- **Umgebung:** Supabase PROD `qdugtpzgefpswnnqbusd` – PostgreSQL 17.6
+- **Ausführungsweg:** Supabase `apply_migration`
+- **Anlass/Zweck:** Chronologischer E05-Rollout; Bereitstellung der serverseitigen RPC zur Vergabe von gelber Karte, roter Karte und positivem Stern mit atomarem Ereignis-/Audit-Insert.
+- **Betroffenes Objekt:** `public.award_training_behavior_event(uuid,uuid,text,text)`.
+- **Freigabe:** Ausdrückliche Nutzerfreigabe am 14.11.2026 unmittelbar vor Ausführung.
+- **Unmittelbare Vorprüfung:** Paket-1-Tabellen vorhanden; Paket-2-RPC nicht vorhanden; Paket-3-Sperrentabellen nicht vorhanden; erforderliche Bestandsobjekte, Felder, `auth.uid()` und `has_selected_team_context(uuid)` vorhanden.
+- **Migrations-ID / Supabase-Version:** `20261114165213` – `e05_prod_paket_02_trainingsevent_rpc_20261114`.
+- **Tatsächlich ausgeführtes SQL:** `docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14.sql`; Git-Blob vor Ausführung `bea5a140587a1e9cee4f49504e7bf983283bdda9`.
+- **Ergebnis:** Supabase meldete `success: true`; Migration ist in der PROD-Migrationshistorie registriert.
+- **Read-only-Verifikation:** RPC genau einmal vorhanden; Owner `postgres`; SECURITY DEFINER; fester `search_path=pg_catalog, public, auth`; EXECUTE für `authenticated` ja, für `anon`, `service_role` und `PUBLIC` nein; Paket-3-Sperrenlogik nicht enthalten; 0 neue Ereignis- und 0 neue Auditdatensätze im Ausführungszeitraum.
+- **Isolierter Test:** GitHub Actions Run `43616072353`, erfolgreich. PostgreSQL 17.6, exaktes SQL, RPC-Sicherheits-/ACL-Assertions, Positiv-/Negativpfade und guarded Rollback vor Paket 3 bestanden.
+- **Rollback/Wiederherstellung:** `docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14_ROLLBACK.sql`; isoliert erfolgreich getestet, kein Rollback in PROD ausgeführt. Nach Paket 3 darf Paket 2 nicht isoliert zurückgebaut werden. Backup-/PITR-Status nicht unabhängig verifiziert.
+- **GitHub-Dateien / Commits:** PROD-SQL Commit `5f5135a2eda714710be86a4cf84e2708c792f3e8`; Rollback Commit `8fb7c24d2a35f891135f537bfb7d684185347282`; Test-Fixture `7a32c1ce67dbef2613340df1949585511cec92ad`; Assertions letzte Fassung `36847bc6f8777728c4b8406cb7243b5c6b65fe2e`; Workflow `55ce57043b5cde66a186845ad0ea00f4b2143015`; Ausführungsdokumentation `f2e0f9e5613bfb0db825a9bc25ea8a68086daa8a`.
+- **Änderungsgrenzen:** DEV und GitHub `main` unverändert. Keine bestehenden Tabellen, Rollen oder Policies geändert. Paket 3 bleibt separat freigabepflichtig.
+
