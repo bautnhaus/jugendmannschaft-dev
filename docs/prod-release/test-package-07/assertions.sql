@@ -25,21 +25,6 @@ values
  ('40000000-0000-0000-0000-000000000003','20000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','Served Test','50000000-0000-0000-0000-000000000003','yellow','served');
 update public.training_suspensions set served_at=now() where id='40000000-0000-0000-0000-000000000003';
 
-begin;
-select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-select public.close_team_season('30000000-0000-0000-0000-000000000001','CI controlled season closure');
-do $functional$
-begin
- if (select is_active from public.seasons where id='30000000-0000-0000-0000-000000000001') then raise exception 'Season remained active'; end if;
- if (select count(*) from public.training_suspensions where status='expired')<>2 then raise exception 'Expected exactly two expired open suspensions'; end if;
- if (select status from public.training_suspensions where id='40000000-0000-0000-0000-000000000003')<>'served' then raise exception 'Served suspension was changed'; end if;
- if (select count(*) from public.training_suspension_audit where action='expired')<>2 then raise exception 'Expected two expired suspension audit records'; end if;
- if (select expired_suspensions_count from public.team_season_closure_audit limit 1)<>2 then raise exception 'Closure audit count incorrect'; end if;
- if (select reason from public.team_season_closure_audit limit 1)<>'CI controlled season closure' then raise exception 'Closure reason incorrect'; end if;
-end
-$functional$;
-rollback;
-
 -- Negative authorization and input checks are tested in separate rollback scopes.
 begin;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
@@ -59,6 +44,22 @@ begin
  exception when insufficient_privilege then null; end;
 end
 $negative$;
+rollback;
+
+
+begin;
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select public.close_team_season('30000000-0000-0000-0000-000000000001','CI controlled season closure');
+do $functional$
+begin
+ if (select is_active from public.seasons where id='30000000-0000-0000-0000-000000000001') then raise exception 'Season remained active'; end if;
+ if (select count(*) from public.training_suspensions where status='expired')<>2 then raise exception 'Expected exactly two expired open suspensions'; end if;
+ if (select status from public.training_suspensions where id='40000000-0000-0000-0000-000000000003')<>'served' then raise exception 'Served suspension was changed'; end if;
+ if (select count(*) from public.training_suspension_audit where action='expired')<>2 then raise exception 'Expected two expired suspension audit records'; end if;
+ if (select expired_suspensions_count from public.team_season_closure_audit limit 1)<>2 then raise exception 'Closure audit count incorrect'; end if;
+ if (select reason from public.team_season_closure_audit limit 1)<>'CI controlled season closure' then raise exception 'Closure reason incorrect'; end if;
+end
+$functional$;
 rollback;
 
 -- Audit append-only behavior.
