@@ -1098,3 +1098,17 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Freigabedossier:** `docs/prod-release/E05_PROD_PAKET_06_ATOMARER_AUSNAHMEWIDERRUF_2026-11-14.md`.
 - **Testgrenze:** Kein authentifizierter End-to-End-Widerruf und kein echter Paralleltransaktionstest im CI; fachliche DEV-Praxistests bleiben vor Frontend-Rollout erforderlich.
 - **Freigabe:** Separate ausdrückliche Freigabe zur PROD-Ausführung erforderlich.
+
+### DB-MIG-2026-017 – E05 PROD Paket 6: Atomarer Widerruf einer Spieltagsausnahme
+
+- **Status:** in PROD ausgeführt und strukturell nachkontrolliert am 14.11.2026 nach ausdrücklicher Freigabe.
+- **PROD-Migrationseintrag:** `20261114211343 e05_prod_paket_06_atomic_exception_revocation_20261114`.
+- **Projekt:** `qdugtpzgefpswnnqbusd`, PostgreSQL 17.6.1.166.
+- **DEV-Quelle:** `docs/E05_SQL_ENTWURF_WIDERRUF_AUSNAHME_MIT_NOMINIERUNGSENTFERNUNG_2026-11-12.sql`; DEV-Ausführung 13.11.2026.
+- **PROD-Migration:** `supabase/migrations/20261114210000_e05_prod_paket_06_atomic_exception_revocation.sql`; Blob-SHA vor Ausführung `1f7eac877c6edbc5873617e4118c4721cb1f2bc6`.
+- **Nachkontrolle:** Widerrufs-RPC SECURITY DEFINER mit festem search_path; EXECUTE nur authenticated. Triggerfunktion SECURITY INVOKER mit festem search_path. Sperr-Nominierungsschutz-Trigger vorhanden; bestehende Aktivspieler-Trigger erhalten.
+- **Produktivdaten:** 0 Ausnahmen, 0 Sperren, 0 Audit-/Widerrufs-Auditzeilen; keine Testdaten erzeugt.
+- **Rollback:** nicht ausgeführt.
+- **Offen:** authentifizierte End-to-End- und Konkurrenztests nicht in PROD ausgeführt; vor Frontend-Rollout in DEV/isolierter Umgebung erforderlich.
+- **Frontend/main:** keine Änderungen; Index-Deploy weiterhin zurückgestellt.
+- **Freigabedossier:** `docs/prod-release/E05_PROD_PAKET_06_ATOMARER_AUSNAHMEWIDERRUF_2026-11-14.md`.
