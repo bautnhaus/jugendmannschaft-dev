@@ -962,3 +962,24 @@ Der vorherige Nachtrag in Abschnitt 7 erklärte die Originaldatei irrtümlich f�
 **Korrektur des Release-Gates:** Der Original-SQL-Text ist in GitHub vorhanden. Das frühere Gate „Original-SQL wiederfinden“ ist damit geschlossen. Die Datei liegt als ausgeführter SQL-Nachweis unter `docs/`, nicht im standardisierten Migrationsordner `supabase/migrations/`. Für das PROD-Paket muss daraus eine sauber versionierte, geprüfte Migration samt Wiederherstellungsplan abgeleitet werden; die vorhandene Rollback-Datei bleibt ein nicht ausgeführter Entwurf und ist vor PROD-Einsatz gesondert zu reviewen.
 
 Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrektur.
+
+
+### DB-MIG-2026-012 – E05 PROD Paket 1: Trainingsereignisse und Ereignis-Audit
+
+- **Ausführungsdatensatz:** PROD
+- **Datum/Uhrzeit (mit Zeitzone):** 14.11.2026, 17:26:46 CET (aus Supabase-Migrationsversion abgeleitet)
+- **Umgebung:** Supabase PROD `qdugtpzgefpswnnqbusd` – PostgreSQL 17.6
+- **Ausführungsweg:** Supabase `apply_migration`
+- **Anlass/Zweck:** Chronologischer PROD-Rollout von E05; Datenbankfundament für Trainingsereignisse und append-only Ereignis-Audit.
+- **Betroffene Objekte:** `public.training_behavior_events`, `public.training_behavior_event_audit`, zugehörige Indizes/Constraints, Funktion `e05_reject_event_audit_mutation()`, zwei Audit-Trigger, RLS, zwei SELECT-Policies und Tabellen-Grants.
+- **Freigabe:** Ausdrückliche Nutzerfreigabe am 14.11.2026 unmittelbar vor Ausführung.
+- **Ausführender:** ChatGPT über Supabase-Migrationswerkzeug.
+- **Status:** Erfolgreich; read-only Verifikation bestanden.
+- **Migrations-ID / Supabase-Version:** `20261114162646` – `e05_prod_paket_01_trainingsereignisse_20261114`.
+- **Tatsächlich ausgeführtes SQL bzw. unveränderlicher Verweis:** `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.sql`; freigegebener SQL-Inhalt vor Ausführung, GitHub-Blob-SHA `6f39812500ac8ce427d3330a8281af941b259b90`.
+- **Ergebnis:** Supabase meldete `success: true`; Migration in PROD-Historie registriert. Neue Tabellen sind leer.
+- **Verifikation (read-only):** Beide Tabellen und Audit-Guard vorhanden; RLS auf beiden aktiv; 2 Policies; 5 Ereignisindizes; 2 Audit-Indizes; 2 Audit-Trigger; `authenticated` SELECT ja/INSERT nein; `anon` SELECT nein; `service_role` SELECT ja; 0 Ereignis- und 0 Auditzeilen.
+- **Rollback/Wiederherstellung:** Guarded Rollback unter `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14_ROLLBACK.sql`; isolierter PostgreSQL-17.6-Test erfolgreich, einschließlich Daten- und Abhängigkeits-Gates. Kein Rollback in PROD ausgeführt. Backup-/PITR-Status konnte mit den verfügbaren Werkzeugen nicht unabhängig ausgelesen werden.
+- **Gegenstück in der anderen Umgebung:** DEV-Paket 1 wurde bereits am 08.11.2026 ausgeführt; DEV wurde bei diesem PROD-Lauf nicht verändert.
+- **GitHub-Datei und Commit-SHA:** Release-SQL, Rollback und Ausführungsnachweis unter `docs/prod-release/`; Commit-SHAs werden nach Abschluss der Dokumentationsaktualisierung ergänzt.
+- **Zusätzliche Hinweise:** Keine Änderung an GitHub `main`, Frontend oder bestehenden fachlichen Datensätzen. Nachfolgende E05-Pakete bleiben einzeln freigabepflichtig.
