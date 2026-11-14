@@ -1,3 +1,14 @@
+# E05 – PROD-Rollout: Pakete 1 und 2 abgeschlossen (14.11.2026)
+
+- **Paket 1 – Trainingsereignisse und Ereignis-Audit:** erfolgreich in Supabase PROD ausgeführt; Migration `20261114162646`, `e05_prod_paket_01_trainingsereignisse_20261114`. Tabellen, RLS, Policies, Indizes, Audit-Trigger und Grants read-only verifiziert; beide Tabellen leer.
+- **Paket 2 – Trainingsereignis-Vergabe-RPC:** nach separater Nutzerfreigabe erfolgreich in Supabase PROD ausgeführt; Migration `20261114165213`, `e05_prod_paket_02_trainingsevent_rpc_20261114`. Live-Funktion und ACL read-only verifiziert; Paket-2-Fassung enthält noch keine Sperrenauslösung.
+- **Isolierte CI-Nachweise:** Paket 1 Run [43615149537](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43615149537), Paket 2 Run [43616072353](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43616072353); beide PostgreSQL 17.6 erfolgreich.
+- **Release-Dokumentation:** `docs/prod-release/E05_PROD_PAKET_01_TRAININGSEREIGNISSE_2026-11-14.md` und `docs/prod-release/E05_PROD_PAKET_02_TRAININGSEVENT_RPC_2026-11-14.md`; beide Ausführungen zusätzlich im `DB_MIGRATION_LOG.md` als DB-MIG-2026-012 und DB-MIG-2026-013 protokolliert.
+- **Änderungsgrenzen:** Supabase DEV und GitHub `main` unverändert. Keine Frontend-Aktivierung durch diese DB-Pakete. Paket 3 ist noch nicht ausgeführt und bleibt separat freigabepflichtig.
+- **Backup-/PITR-Nachweis:** Status wurde für beide Ausführungen nicht unabhängig ausgelesen; dies ist in den Einzelprotokollen als Nachweisgrenze festgehalten. Isolierte CI-Rollback-Tests sind kein PROD-Backup-Nachweis.
+
+---
+
 # E05 PROD Rollout – Stand 14.11.2026 nach Paket 2
 
 - **Paket 1 – Trainingsereignisse/Ereignis-Audit:** erfolgreich in Supabase PROD ausgeführt. Migration `20261114162646`, Name `e05_prod_paket_01_trainingsereignisse_20261114`. Read-only Nachkontrolle bestanden. Exakter ausgeführter SQL-Blob: `6f39812500ac8ce427d3330a8281af941b259b90`; CI PostgreSQL 17.6 Run `43615149537` erfolgreich.
