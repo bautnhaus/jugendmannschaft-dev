@@ -7,7 +7,7 @@ begin
  end if;
  if has_function_privilege('anon','public.award_training_behavior_event(uuid,uuid,text,text)','EXECUTE')
     or has_function_privilege('service_role','public.award_training_behavior_event(uuid,uuid,text,text)','EXECUTE')
-    or has_function_privilege('public','public.award_training_behavior_event(uuid,uuid,text,text)','EXECUTE') then
+     then
    raise exception 'unexpected EXECUTE grant to anon/service_role/PUBLIC';
  end if;
  if not (select prosecdef from pg_proc where oid='public.award_training_behavior_event(uuid,uuid,text,text)'::regprocedure) then
