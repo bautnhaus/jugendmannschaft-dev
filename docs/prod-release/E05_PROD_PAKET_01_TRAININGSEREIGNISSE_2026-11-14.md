@@ -178,3 +178,45 @@ Die finale Prüfung bestätigt:
 - Rollback stoppt bei erkannten abhängigen Objekten oder Datenbestand.
 
 **Ergebnis:** Die drei technischen Restpunkte sind abgeschlossen. Paket 1 ist als Release-Kandidat zur Nutzerfreigabe vorbereitet. Die PROD-Ausführung selbst bleibt gesperrt, bis eine separate ausdrückliche Freigabe vorliegt und die unmittelbar vorherige PROD-Backup-/Vorbedingungsprüfung bestanden ist.
+
+
+---
+
+## 13. Verbindlicher Nachtrag – PROD-Ausführung abgeschlossen (14.11.2026)
+
+Dieser Nachtrag ersetzt alle obenstehenden früheren Statusangaben wie „PROD unverändert“, „nicht ausgeführt“ oder „Freigabe ausstehend“. Diese Angaben beschreiben ausschließlich den Vorbereitungsstand vor der Nutzerfreigabe.
+
+- **Freigabe:** ausdrückliche Nutzerfreigabe im Chat am 14.11.2026.
+- **Projekt:** Supabase PROD `qdugtpzgefpswnnqbusd`, ACTIVE_HEALTHY, PostgreSQL 17.6.
+- **Ausführungsweg:** Supabase `apply_migration`.
+- **Migrationsversion:** `20261114162646`.
+- **Migrationsname:** `e05_prod_paket_01_trainingsereignisse_20261114`.
+- **Zeit:** 14.11.2026, 17:26:46 CET (aus dem Supabase-Migrationszeitstempel abgeleitet).
+- **Ergebnis:** Supabase meldete `success: true`; die Migration ist in der PROD-Migrationshistorie registriert.
+
+### Read-only Nachkontrolle
+
+| Prüfpunkt | Ergebnis |
+|---|---|
+| Ereignistabelle vorhanden | Ja |
+| Audit-Tabelle vorhanden | Ja |
+| Audit-Guard-Funktion vorhanden | Ja |
+| RLS auf beiden Tabellen aktiviert | Ja |
+| SELECT-Policies | 2 |
+| Ereignisindizes inkl. Primary Key | 5 |
+| Audit-Indizes inkl. Primary Key | 2 |
+| Audit-Schutztrigger | 2 |
+| Neue Ereignisdatensätze | 0 |
+| Neue Auditdatensätze | 0 |
+| authenticated: SELECT | Ja |
+| authenticated: INSERT | Nein |
+| anon: SELECT | Nein |
+| service_role: SELECT | Ja |
+
+Die Migration `20261114162646` ist in der PROD-Migrationshistorie sichtbar.
+
+### Backup-/Recovery-Nachweisgrenze
+
+Ein separater Status des Supabase-Backups bzw. PITR konnte über die in dieser Sitzung verfügbaren Projektwerkzeuge nicht unabhängig ausgelesen werden. Es wird daher kein Backup-Status als geprüft oder bestätigt ausgewiesen. Der erfolgreiche isolierte CI-Rollback-Test ersetzt keinen PROD-Backup-Nachweis.
+
+**Abschlussstatus:** Paket 1 erfolgreich in PROD ausgeführt und read-only verifiziert. Supabase DEV und GitHub `main` wurden nicht verändert. Nachfolgende E05-Pakete bleiben einzeln freigabepflichtig.
