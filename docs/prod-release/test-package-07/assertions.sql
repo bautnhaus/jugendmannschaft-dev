@@ -40,6 +40,14 @@ end
 $functional$;
 rollback;
 
+-- Recreate the minimal season fixture outside the following negative-test
+-- transactions, so authorization is evaluated against an existing season.
+insert into auth.users(id) values ('10000000-0000-0000-0000-000000000001'),('10000000-0000-0000-0000-000000000002');
+insert into public.teams(id) values ('20000000-0000-0000-0000-000000000001');
+insert into public.profiles(id,display_name) values ('10000000-0000-0000-0000-000000000001','Team Admin'),('10000000-0000-0000-0000-000000000002','Trainer');
+insert into public.team_member_roles values ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','admin'),('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','trainer');
+insert into public.seasons(id,team_id,name,is_active) values ('30000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','Test Season Negative',true);
+
 -- Negative authorization and input checks are tested in separate rollback scopes.
 begin;
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
