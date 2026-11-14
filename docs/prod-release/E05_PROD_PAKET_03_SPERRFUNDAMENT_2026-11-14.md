@@ -173,4 +173,20 @@ Paket 3 aktiviert die automatische Sperrenerzeugung, enthält aber selbst noch k
 - Das Rollback bricht ab, sobald Ereignis-/Auditdaten vorhanden sind oder Folgepaketobjekte installiert wurden. Bei Datenbestand ist Recovery/Restore statt Löschen erforderlich.
 - Der Backup-/PITR-Status von PROD konnte mit den verfügbaren Werkzeugen nicht unabhängig verifiziert werden. Vor der tatsächlichen Ausführung ist dieser Punkt im Supabase-Projekt zu kontrollieren.
 
-**Abschlussstatus: technische SQL-/Rollback-Prüfung bestanden; Paket 3 liegt zur ausdrücklichen PROD-Freigabe vor. Nicht in PROD ausgeführt.** Die unmittelbare Vorprüfung, Backup-/PITR-Kontrolle und Hash-Kontrolle sind vor Ausführung erneut vorzunehmen. Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` durch die Vorbereitung.
+**Abschlussstatus: Paket 3 erfolgreich in PROD ausgeführt und read-only nachkontrolliert.**
+
+## PROD-Ausführung – 14.11.2026
+
+- **Status:** erfolgreich in Supabase PROD ausgeführt und nachkontrolliert.
+- **Projekt:** `qdugtpzgefpswnnqbusd` (Jugendmannschaft, PostgreSQL 17.6).
+- **Registrierte Migration:** Version `20261114174854`, Name `e05_prod_paket_03_suspension_foundation_20261114`. Die von Supabase vergebene Versionsnummer weicht vom lokalen Dateipräfix ab; dies ist der tatsächliche Eintrag in der PROD-Migrationshistorie.
+- **Freigegebene SQL-Datei:** `supabase/migrations/20261114180000_e05_prod_paket_03_suspension_foundation.sql`, Git-Blob-SHA `7f519980342bcde70379d884144a231a864a9de2`.
+- **Tabellen:** `training_suspensions` und `training_suspension_audit` vorhanden.
+- **RLS:** auf beiden Tabellen aktiviert; jeweils eine Policy vorhanden.
+- **Indizes:** 4 auf Sperren, 2 auf Sperren-Audit.
+- **Audit:** Guard-Funktion vorhanden; 2 nicht-interne Audit-Trigger vorhanden.
+- **Rechte:** authenticated darf Sperren lesen, nicht direkt einfügen; anon darf nicht lesen. Paket-2-RPC bleibt EXECUTE für authenticated; kein EXECUTE für anon/service_role.
+- **RPC:** Live-Definition von `award_training_behavior_event(...)` enthält die Sperrenlogik.
+- **Datenbestand:** unmittelbar nach Migration 0 Sperren und 0 Sperren-Audit-Einträge; keine bestehenden Ereignisdaten wurden verändert.
+- **Backup/PITR:** kein unabhängiger Backup-/PITR-Nachweis. Gemäß dokumentierter Einschränkung des Supabase-Free-Plans wurde dies nicht als Release-Blocker behandelt.
+- **Rollback:** nicht ausgeführt; nur für einen nötigen, gesondert geprüften Wiederherstellungsfall vorgesehen.
