@@ -124,7 +124,7 @@ Paket 3 aktiviert die automatische Sperrenerzeugung, enthält aber selbst noch k
 - [x] Rollback mit Daten- und Folgepaket-Gates erstellt.
 - [x] Read-only Nachkontroll-SQL erstellt.
 - [x] Isolierte PostgreSQL-17.6-Fixture, Assertions und CI-Workflow erstellt.
-- [ ] CI-Lauf erfolgreich abgeschlossen und geprüft.
+- [x] CI-Lauf erfolgreich abgeschlossen und geprüft (Run 43620391604, Commit 4b36272b781c3afa648abdd3dce7327728ebbdfb).
 - [ ] Finale SQL-/Rollback-Prüfung nach CI.
 - [ ] Nutzerfreigabe zur PROD-Ausführung.
 - [ ] Unmittelbare PROD-Vorprüfung und Hash-Abgleich.
@@ -132,4 +132,13 @@ Paket 3 aktiviert die automatische Sperrenerzeugung, enthält aber selbst noch k
 - [ ] Read-only Nachkontrolle bestanden.
 - [ ] DB-Migrationsjournal und Ausführungsprotokoll mit tatsächlichen Ergebnissen ergänzt.
 
-**Aktueller Status: technischer Freigabekandidat in Vorbereitung. Nicht in PROD ausgeführt.** Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` durch die Vorbereitung.
+## 9. CI-Auswertung – 14.11.2026
+
+- **Workflow-Run:** [43620391604 – E05 PROD Paket 3 – isolated PostgreSQL validation](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43620391604)
+- **Commit:** `4b36272b781c3afa648abdd3dce7327728ebbdfb`
+- **Ergebnis:** `success` auf PostgreSQL 17.6.
+- **Erfolgreiche Schritte:** Baseline Paket 1/2; Paket-3-Fixture; Ausführung der exakten PROD-Paket-3-Migrationsdatei; Struktur-/RLS-/Policy-/ACL-/Trigger-Prüfungen; gelbe Karten 1–4 ohne Sperre und Karte 5 mit genau einer gelben Sperre; rote Karte mit genau einer verknüpften roten Sperre; erzwungener Auditfehler mit atomarem Rollback; guarded Paket-3-Rollback und Wiederherstellung der Paket-2-RPC.
+- **Fehlerbehebung vor dem erfolgreichen Lauf:** Die ersten drei Läufe scheiterten ausschließlich beim Fixture-Setup, weil Paket-3-Bootstrap Rollen und Auth-Objekte erneut anlegte, die bereits von Paket 1/2 erzeugt wurden (`role "anon" already exists`). Das Bootstrap wurde auf die noch fehlende Team-Fixture reduziert. Der erfolgreiche Lauf wurde anschließend mit dem korrigierten Fixture vollständig neu ausgeführt.
+- **Testgrenze:** Dies ist ein isolierter PostgreSQL-Test, kein Supabase-PROD-Test und kein Nachweis eines PROD-Backups. Er belegt die getesteten Paket-3-SQL-Pfade innerhalb der Fixture.
+
+**Aktueller Status: CI erfolgreich; technischer Freigabekandidat bereit für abschließende SQL-/Rollback-Review und Nutzerfreigabe. Nicht in PROD ausgeführt.** Keine Änderung an Supabase DEV, Supabase PROD oder GitHub `main` durch die Vorbereitung.
