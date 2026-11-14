@@ -19,13 +19,8 @@ begin
      or to_regclass('public.training_suspension_audit') is null then
     raise exception 'Preflight: benötigte Tabellen fehlen';
   end if;
-  if not exists (
-    select 1 from pg_trigger
-    where tgrelid='public.matchday_players'::regclass
-      and tgname='matchday_players_prevent_suspended_nomination'
-      and not tgisinternal
-  ) then
-    raise exception 'Preflight: erwarteter Nominierungs-Trigger fehlt';
+  if to_regclass('public.matchday_players') is null then
+    raise exception 'Preflight: matchday_players fehlt';
   end if;
 end;
 $preflight$;
@@ -99,6 +94,26 @@ begin
     return new;
 end;
 $function$;
+
+-- PROD-Abweichung gegenüber DEV: In PROD ist der Sperr-Nominierungs-
+-- Trigger nach Paketen 1–5 noch nicht vorhanden. Deshalb wird er hier
+-- zusammen mit der synchronisierten Triggerfunktion angelegt.
+do $trigger$
+begin
+  if not exists (
+    select 1 from pg_trigger
+    where tgrelid='public.matchday_players'::regclass
+      and tgname='matchday_players_prevent_suspended_nomination'
+      and not tgisinternal
+  ) then
+    create trigger matchday_players_prevent_suspended_nomination
+      before insert or update of matchday_id, player_id
+      on public.matchday_players
+      for each row
+      execute function public.prevent_suspended_matchday_nomination();
+  end if;
+end;
+$trigger$;
 
 -- 2) Widerrufs-RPC: bestehende Nominierung im selben Transaktionskontext
 --    entfernen und ihren Snapshot im Audit sichern.
