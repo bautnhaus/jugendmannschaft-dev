@@ -1073,3 +1073,16 @@ Keine Supabase-Schreiboperation und keine PROD-Änderung im Rahmen dieser Korrek
 - **Testgrenze:** isolierter CI-Test prüft Migration, Struktur, ACL/RPC-Verhalten, Konfigurationshierarchie und Rollback. Vollständige Abläufe mit echten offenen Sperren und realen Spieltagen wurden nicht in PROD ausgelöst; diese bleiben durch DEV-Abnahme dokumentiert.
 - **Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_04_SPIELTAGSZUORDNUNG_2026-11-14.md`.
 - **Ergebnis:** erfolgreich ausgeführt und read-only nachkontrolliert.
+
+
+### DB-MIG-2026-016 – E05 PROD Paket 5: Spieltagsausnahmen bei Sperren
+
+- **Ausgeführt:** 14.11.2026 in Supabase PROD nach ausdrücklicher Nutzerfreigabe.
+- **Supabase-Migration:** Version `20261114202342`, Name `e05_prod_paket_05_matchday_suspension_exception_20261114`.
+- **SQL-Datei:** `supabase/migrations/20261114193000_e05_prod_paket_05_matchday_suspension_exception.sql`; Git-Blob-SHA `5bf9e040b5fb5ba3faf2f1acec9400b3efeb7df3`.
+- **CI:** [Run 43635963976](https://github.com/bautnhaus/jugendmannschaft/actions/runs/43635963976), PostgreSQL 17.6; Migration, Struktur-/ACL-/Audit-Assertions und guarded Rollback erfolgreich.
+- **PROD-Nachkontrolle:** Ausnahmetabelle, RLS, eine SELECT-Policy, drei Indizes, Audit-Spalten/Constraints/Policy, SECURITY DEFINER-RPC mit festem search_path und EXECUTE-ACL wie vorgesehen.
+- **Audit-Trigger:** beide bestehenden append-only Trigger erhalten.
+- **Datenbestand:** 0 Ausnahmen, 0 Sperren, 0 Audit-Einträge; keine bestehenden fachlichen Daten verändert.
+- **Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_05_SPIELTAGSAUSNAHMEN_2026-11-14.md`.
+- **Ergebnis:** erfolgreich ausgeführt und read-only nachkontrolliert. Funktionaler End-to-End-Praxistest mit echten Sperren/Spieltagdaten steht noch aus.
