@@ -1,3 +1,14 @@
+# E05 – PROD Rollout und nächster Freigabeschritt (14.11.2026)
+
+- **Paket 1 und 2:** erfolgreich in Supabase PROD ausgeführt und read-only verifiziert. Migrationen `20261114162646` und `20261114165213`; Details und unveränderliche SQL-Nachweise im `DB_MIGRATION_LOG.md` (DB-MIG-2026-012/-013).
+- **Paket 3:** Freigabekandidat auf `develop` vorbereitet, aber nicht in PROD ausgeführt. DEV-Quelle, PROD-Migration, guarded Rollback, read-only Prüf-SQL und isolierte PostgreSQL-17.6-CI-Fixture/Workflow liegen vor.
+- **Paket-3-PROD-Vorprüfung:** Paket 1/2 vorhanden; Sperrenobjekte und Folgepakete fehlen; notwendige Rollen-/Kontext-Helfer und Basistabellen/Felder sind vorhanden.
+- **Wichtige Betriebsgrenze:** Paket 3 allein erzeugt Sperren, ordnet sie aber noch keinem Spieltag zu und enthält noch keine Ausnahmen, Widerrufs-/Korrekturpfade oder finale Trainingsdatum-Chronologie. Folgepakete bleiben gesondert freizugeben.
+- **Nächste Schritte:** CI-Lauf auswerten, finale SQL-/Rollback-Prüfung und Freigabeunterlage abschließen. Keine PROD-Ausführung ohne ausdrückliche separate Freigabe.
+- **Umgebungsgrenzen:** Die Vorbereitung änderte weder Supabase DEV/PROD noch GitHub `main`; nur Dokumente/Testartefakte auf `develop` wurden ergänzt.
+
+---
+
 # E05 – PROD-Rollout: Pakete 1 und 2 abgeschlossen (14.11.2026)
 
 - **Paket 1 – Trainingsereignisse und Ereignis-Audit:** erfolgreich in Supabase PROD ausgeführt; Migration `20261114162646`, `e05_prod_paket_01_trainingsereignisse_20261114`. Tabellen, RLS, Policies, Indizes, Audit-Trigger und Grants read-only verifiziert; beide Tabellen leer.
