@@ -81,7 +81,7 @@ begin
     insert into public.training_suspension_audit(suspension_id,exception_id,action,new_values,reason)
     values(gen_random_uuid(),gen_random_uuid(),'exception_granted','{}'::jsonb,'CI invalid two subjects');
     raise exception 'Audit accepted two subjects';
-  exception when foreign_key_violation then
+  exception when check_violation then
     null;
   end;
 end;
