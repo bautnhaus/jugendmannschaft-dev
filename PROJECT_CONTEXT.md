@@ -1,3 +1,14 @@
+# E05 – PROD Rollout-Status (14.11.2026)
+
+- **Paket 1:** PROD erfolgreich, Migration `20261114162646`.
+- **Paket 2:** PROD erfolgreich, Migration `20261114165213`.
+- **Paket 3:** PROD erfolgreich, Migration `20261114174854` (`e05_prod_paket_03_suspension_foundation_20261114`). Tabellen, RLS, Policies, Indizes, Audit-Guard/Trigger, RPC und ACL read-only geprüft; unmittelbar nach Ausführung 0 Sperren und 0 Sperren-Audit-Einträge.
+- **Backup/PITR:** Unter Supabase Free nicht unabhängig bestätigt; als dokumentierte Plan-Einschränkung behandelt, kein Release-Blocker.
+- **Ausführungsdokumentation:** `docs/prod-release/E05_PROD_PAKET_03_SPERRFUNDAMENT_2026-11-14.md`; DB-MIG-2026-014 in `DB_MIGRATION_LOG.md`.
+- **Grenzen:** DEV und GitHub `main` unverändert. Rollback nicht ausgeführt. Folgepakete bleiben einzeln vorzubereiten und freizugeben.
+
+---
+
 # E05 – PROD Rollout und nächster Freigabeschritt (14.11.2026)
 
 - **Paket 1 und 2:** erfolgreich in Supabase PROD ausgeführt und read-only verifiziert; DB-MIG-2026-012/-013.
